@@ -108,6 +108,7 @@ int main() {
                     else
                         tokens.push_back(Token(">", great));
                 }
+                // TODO
                 break;
         }
     }
