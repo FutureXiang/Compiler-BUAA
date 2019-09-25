@@ -54,3 +54,19 @@ std::map<TokenType, std::string> type2str = {
     {lCurly, "LBRACE"},
     {rCurly, "RBRACE"},
 };
+
+std::map<std::string, TokenType> extractKeys = {
+    {"const", constKey},
+    {"int", intKey},
+    {"char", charKey},
+    {"void", voidKey},
+    {"main", mainKey},
+    {"if", ifKey},
+    {"else", elseKey},
+    {"do", doKey},
+    {"while", whileKey},
+    {"for", forKey},
+    {"scanf", scan},
+    {"printf", print},
+    {"return", returnKey},
+};

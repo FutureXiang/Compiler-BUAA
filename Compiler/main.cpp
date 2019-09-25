@@ -21,7 +21,7 @@ TextData readIn() {
     
     TextData data = TextData();
     
-    while (cin >> character)
+    while (scanf("%c", &character) != EOF)
         data.add(character);
     return data;
 }
@@ -30,14 +30,31 @@ void error(string x) {
     cout << "Error @ " << x << endl;
 }
 
+bool is_indentifier_alpha(char x) {
+    return isupper(x) || islower(x) || x == '_';
+}
+
+bool is_indentifier_follow(char x) {
+    return is_indentifier_alpha(x) || isdigit(x);
+}
+
+void classifyAndPush(string content, vector<Token> &container) {
+    TokenType thisType = name;
+    if (extractKeys.count(content))
+        thisType = extractKeys[content];
+    container.push_back(Token(content, thisType));
+}
+
 int main() {
     TextData data = readIn();
     vector<Token> tokens;
 
     while (!data.empty()) {
         char now = data.pop();
-        while (now == ' ' || now == '\n' || now == '\t')
+        while (!data.empty() && (now == ' ' || now == '\n' || now == '\t' || now == '\0'))
             now = data.pop();
+        if (data.empty())
+            break;
         switch (now) {
             case '(':
                 tokens.push_back(Token(string(1, now), lBracket));
@@ -145,8 +162,13 @@ int main() {
                     while (!data.empty() && isdigit(data.peek()))
                         content += data.pop();
                     tokens.push_back(Token(content, intConst));
-                }
-                // TODO
+                } else if (is_indentifier_alpha(now)) {
+                    string content = string(1, now);
+                    while (is_indentifier_follow(data.peek()))
+                        content += data.pop();
+                    classifyAndPush(content, tokens);
+                } else
+                    error(string(1, now));
                 break;
         }
     }

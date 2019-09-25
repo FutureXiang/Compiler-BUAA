@@ -28,5 +28,6 @@ enum TokenType {
 };
 
 extern std::map<TokenType, std::string> type2str;
+extern std::map<std::string, TokenType> extractKeys;
 
 #endif /* TokenType_h */
