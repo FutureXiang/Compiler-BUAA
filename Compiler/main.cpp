@@ -21,7 +21,7 @@ TextData readIn() {
     
     TextData data = TextData();
     
-    while (scanf("%c", &character) != EOF)
+    while (cin >> character)
         data.add(character);
     return data;
 }
@@ -36,6 +36,8 @@ int main() {
 
     while (!data.empty()) {
         char now = data.pop();
+        while (now == ' ' || now == '\n' || now == '\t')
+            now = data.pop();
         switch (now) {
             case '(':
                 tokens.push_back(Token(string(1, now), lBracket));
@@ -107,6 +109,42 @@ int main() {
                     }
                     else
                         tokens.push_back(Token(">", great));
+                } else if (now == '\'') {
+                    string content = "";
+                    while (!data.empty() && data.peek() != '\'' && data.peek() != '\n')
+                        content += data.pop();
+                    if (data.empty())
+                        error("'"+content+"\\EOF");
+                    else if (data.peek() == '\n') {
+                        error("'"+content+"\\NEWLINE");
+                        data.pop();
+                    } else if (content.length() != 1) {
+                        error("'"+content+"'");
+                        data.pop();
+                    }
+                    else {
+                        tokens.push_back(Token(content, charConst));
+                        data.pop();
+                    }
+                } else if (now == '"') {
+                    string content = "";
+                    while (!data.empty() && data.peek() != '"' && data.peek() != '\n')
+                        content += data.pop();
+                    if (data.empty())
+                        error("\""+content+"\\EOF");
+                    else if (data.peek() == '\n') {
+                        error("\""+content+"\\NEWLINE");
+                        data.pop();
+                    }
+                    else {
+                        tokens.push_back(Token(content, stringConst));
+                        data.pop();
+                    }
+                } else if (isdigit(now)) {
+                    string content = string(1, now);
+                    while (!data.empty() && isdigit(data.peek()))
+                        content += data.pop();
+                    tokens.push_back(Token(content, intConst));
                 }
                 // TODO
                 break;
