@@ -27,7 +27,7 @@ TextData readIn() {
 }
 
 void error(string x) {
-    cout << "Error @ " << x << endl;
+//    cout << "Error @ " << x << endl;
 }
 
 bool is_indentifier_alpha(char x) {
@@ -53,7 +53,7 @@ int main() {
         char now = data.pop();
         while (!data.empty() && (now == ' ' || now == '\n' || now == '\t' || now == '\0'))
             now = data.pop();
-        if (data.empty())
+        if (data.empty() && (now == ' ' || now == '\n' || now == '\t' || now == '\0'))
             break;
         switch (now) {
             case '(':
