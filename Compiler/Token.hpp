@@ -17,6 +17,7 @@ private:
     std::string text;
     TokenType type;
 public:
+    Token();
     Token(std::string text, TokenType type);
     std::string toString();
 };

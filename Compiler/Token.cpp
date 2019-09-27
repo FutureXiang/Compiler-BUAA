@@ -8,6 +8,9 @@
 
 #include "Token.hpp"
 
+Token::Token(){
+}
+
 Token::Token(std::string text, TokenType type) {
     this->text = text;
     this->type = type;

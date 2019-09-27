@@ -27,7 +27,7 @@ TextData readIn() {
 }
 
 void error(string x) {
-//    cout << "Error @ " << x << endl;
+    cout << "Error @ " << x << endl;
 }
 
 bool is_indentifier_alpha(char x) {
@@ -38,11 +38,11 @@ bool is_indentifier_follow(char x) {
     return is_indentifier_alpha(x) || isdigit(x);
 }
 
-void classifyAndPush(string content, vector<Token> &container) {
+Token classifyAndConstruct(string content) {
     TokenType thisType = name;
     if (extractKeys.count(content))
         thisType = extractKeys[content];
-    container.push_back(Token(content, thisType));
+    return Token(content, thisType);
 }
 
 int main() {
@@ -51,46 +51,60 @@ int main() {
 
     while (!data.empty()) {
         char now = data.pop();
-        while (!data.empty() && (now == ' ' || now == '\n' || now == '\t' || now == '\0'))
+        while (!data.empty() && (isspace(now) || now == '\0'))
             now = data.pop();
-        if (data.empty() && (now == ' ' || now == '\n' || now == '\t' || now == '\0'))
+        if (data.empty() && (isspace(now) || now == '\0'))
             break;
+        Token newToken;
+        bool flag = false;
         switch (now) {
             case '(':
-                tokens.push_back(Token(string(1, now), lBracket));
+                newToken = Token(string(1, now), lBracket);
+                flag = true;
                 break;
             case ')':
-                tokens.push_back(Token(string(1, now), rBracket));
+                newToken = Token(string(1, now), rBracket);
+                flag = true;
                 break;
             case '[':
-                tokens.push_back(Token(string(1, now), lSquare));
+                newToken = Token(string(1, now), lSquare);
+                flag = true;
                 break;
             case ']':
-                tokens.push_back(Token(string(1, now), rSquare));
+                newToken = Token(string(1, now), rSquare);
+                flag = true;
                 break;
             case '{':
-                tokens.push_back(Token(string(1, now), lCurly));
+                newToken = Token(string(1, now), lCurly);
+                flag = true;
                 break;
             case '}':
-                tokens.push_back(Token(string(1, now), rCurly));
+                newToken = Token(string(1, now), rCurly);
+                flag = true;
                 break;
             case '+':
-                tokens.push_back(Token(string(1, now), pluss));
+                newToken = Token(string(1, now), pluss);
+                flag = true;
                 break;
             case '-':
-                tokens.push_back(Token(string(1, now), minuss));
+                newToken = Token(string(1, now), minuss);
+                flag = true;
                 break;
             case '*':
-                tokens.push_back(Token(string(1, now), multi));
+                newToken = Token(string(1, now), multi);
+                flag = true;
                 break;
             case '/':
-                tokens.push_back(Token(string(1, now), divd));
+                newToken = Token(string(1, now), divd);
+                flag = true;
                 break;
             case ';':
-                tokens.push_back(Token(string(1, now), semi));
+                newToken = Token(string(1, now), semi);
+                flag = true;
                 break;
             case ',':
-                tokens.push_back(Token(string(1, now), comma));
+                newToken = Token(string(1, now), comma);
+                flag = true;
                 break;
             default:
                 if (now == '!') {
@@ -98,34 +112,45 @@ int main() {
                     string pre = string(1, now);
                     char next = data.pop();
                     pre += next;
-                    if (next == '=')
-                        tokens.push_back(Token(pre, neq));
+                    if (next == '=') {
+                        newToken = Token(pre, neq);
+                        flag = true;
+                    }
                     else
                         error(pre);
                 } else if (now == '=') {
                     // "=" OR "=="
                     if (data.peek() == '=') {
                         data.pop();
-                        tokens.push_back(Token("==", equalto));
+                        newToken = Token("==", equalto);
+                        flag = true;
                     }
-                    else
-                        tokens.push_back(Token("=", assign));
+                    else {
+                        newToken = Token("=", assign);
+                        flag = true;
+                    }
                 } else if (now == '<') {
                     // "<" OR "<="
                     if (data.peek() == '=') {
                         data.pop();
-                        tokens.push_back(Token("<=", leq));
+                        newToken = Token("<=", leq);
+                        flag = true;
                     }
-                    else
-                        tokens.push_back(Token("<", lesss));
+                    else {
+                        newToken = Token("<", lesss);
+                        flag = true;
+                    }
                 } else if (now == '>') {
                     // ">" OR ">="
                     if (data.peek() == '=') {
                         data.pop();
-                        tokens.push_back(Token(">=", geq));
+                        newToken = Token(">=", geq);
+                        flag = true;
                     }
-                    else
-                        tokens.push_back(Token(">", great));
+                    else {
+                        newToken = Token(">", great);
+                        flag = true;
+                    }
                 } else if (now == '\'') {
                     string content = "";
                     while (!data.empty() && data.peek() != '\'' && data.peek() != '\n')
@@ -140,7 +165,8 @@ int main() {
                         data.pop();
                     }
                     else {
-                        tokens.push_back(Token(content, charConst));
+                        newToken = Token(content, charConst);
+                        flag = true;
                         data.pop();
                     }
                 } else if (now == '"') {
@@ -154,26 +180,30 @@ int main() {
                         data.pop();
                     }
                     else {
-                        tokens.push_back(Token(content, stringConst));
+                        newToken = Token(content, stringConst);
+                        flag = true;
                         data.pop();
                     }
                 } else if (isdigit(now)) {
                     string content = string(1, now);
                     while (!data.empty() && isdigit(data.peek()))
                         content += data.pop();
-                    tokens.push_back(Token(content, intConst));
+                    newToken = Token(content, intConst);
+                    flag = true;
                 } else if (is_indentifier_alpha(now)) {
                     string content = string(1, now);
                     while (is_indentifier_follow(data.peek()))
                         content += data.pop();
-                    classifyAndPush(content, tokens);
+                    newToken = classifyAndConstruct(content);
+                    flag = true;
                 } else
                     error(string(1, now));
                 break;
         }
+        if (flag) {
+            tokens.push_back(newToken);
+            cout << newToken.toString() << endl;
+        }
     }
-    
-    for (Token t: tokens)
-        cout << t.toString() << endl;
     return 0;
 }
