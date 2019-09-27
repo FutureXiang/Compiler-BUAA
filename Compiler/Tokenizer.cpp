@@ -7,6 +7,7 @@
 //
 
 #include "Tokenizer.hpp"
+#include "PeekQueue.cpp"
 using namespace std;
 
 void error(string x) {
@@ -28,8 +29,8 @@ Token classifyAndConstruct(string content) {
     return Token(content, thisType);
 }
 
-vector<Token> Tokenizer(TextData data) {
-    vector<Token> tokens;
+PeekQueue<Token> Tokenizer(PeekQueue<char> data) {
+    PeekQueue<Token> tokens;
     
     while (!data.empty()) {
         char now = data.pop();
@@ -183,7 +184,7 @@ vector<Token> Tokenizer(TextData data) {
                 break;
         }
         if (flag) {
-            tokens.push_back(newToken);
+            tokens.add(newToken);
             cout << newToken.toString() << endl;
         }
     }

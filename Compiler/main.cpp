@@ -8,19 +8,19 @@
 
 #include <iostream>
 #include <cstdio>
-#include <vector>
-#include "TextData.hpp"
 #include "Token.hpp"
 #include "Tokenizer.hpp"
+#include "Parser.hpp"
+#include "PeekQueue.cpp"
 
 using namespace std;
 
-TextData readIn() {
+PeekQueue<char> readIn() {
     freopen("testfile.txt", "r", stdin);
     freopen("output.txt", "w", stdout);
     char character;
     
-    TextData data = TextData();
+    PeekQueue<char> data = PeekQueue<char>();
     
     while (scanf("%c", &character) != EOF)
         data.add(character);
@@ -28,7 +28,10 @@ TextData readIn() {
 }
 
 int main() {
-    TextData data = readIn();
-    vector<Token> tokens = Tokenizer(data);
+    PeekQueue<char> data = readIn();
+    cout << "Tokenizer Result:" << endl;
+    PeekQueue<Token> tokens = Tokenizer(data);
+    cout << "Parser Result:" << endl;
+    Parser(tokens);
     return 0;
 }

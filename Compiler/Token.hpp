@@ -20,6 +20,7 @@ public:
     Token();
     Token(std::string text, TokenType type);
     std::string toString();
+    TokenType getType();
 };
 
 #endif /* Token_hpp */

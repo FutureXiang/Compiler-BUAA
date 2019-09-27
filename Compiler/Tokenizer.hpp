@@ -11,10 +11,9 @@
 
 #include <iostream>
 #include <cstdio>
-#include <vector>
-#include "TextData.hpp"
+#include "PeekQueue.hpp"
 #include "Token.hpp"
 
-std::vector<Token> Tokenizer(TextData data);
+PeekQueue<Token> Tokenizer(PeekQueue<char> data);
 
 #endif /* Tokenizer_hpp */

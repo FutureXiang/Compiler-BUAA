@@ -19,3 +19,7 @@ Token::Token(std::string text, TokenType type) {
 std::string Token::toString() {
     return type2str[type] + " " + text;
 }
+
+TokenType Token::getType() {
+    return type;
+}
