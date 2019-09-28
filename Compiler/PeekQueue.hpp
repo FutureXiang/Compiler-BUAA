@@ -19,6 +19,7 @@ public:
     PeekQueue();
     void add(T in);
     T peek();
+    T peek(int n);
     T pop();
     bool empty();
 };

@@ -33,3 +33,8 @@ template <class T>
 bool PeekQueue<T>::empty() {
     return queue.empty();
 }
+
+template <class T>
+T PeekQueue<T>::peek(int n) {
+    return queue[n-1];
+}
