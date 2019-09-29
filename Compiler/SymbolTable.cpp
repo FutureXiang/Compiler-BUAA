@@ -36,6 +36,10 @@ bool Symbol::isVoidFunc() {
     return (type == voidFunct);
 }
 
+bool Symbol::isNonvoidFunc() {
+    return (type == intFunct || type == charFunct);
+}
+
 SymbolType Symbol::getType() {
     return type;
 }

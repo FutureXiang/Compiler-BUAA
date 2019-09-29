@@ -52,7 +52,13 @@ void Parser::factor() {
             expr();
             mustBeThisToken(data, rSquare);
         } else if (data.peek().getType() == lBracket) {                             // ＜标识符＞ '('＜值参数表＞')' => ＜有返回值函数调用语句＞的不含<标识符>的后半段
-            nonvoidCaller();
+            if (table.count(identifier.getText()) && table[identifier.getText()].isNonvoidFunc())
+                nonvoidCaller();
+            else {
+                error(identifier);
+                std::cout << "Not a non-void Function!" << std::endl;
+                while(1);
+            }
         }
     } else if (data.peek().getType() == lBracket) {                                 // ‘(’＜表达式＞‘)’
         printPop(data);
@@ -253,16 +259,22 @@ void Parser::statement() {
             mustBeThisToken(data, semi);
             break;
         default:                                                                    // ＜有返回值函数调用语句＞; | ＜无返回值函数调用语句＞; | ＜赋值语句＞;
-            if (data.peek(2).getType() == assign) {
+            if (data.peek(2).getType() == assign || data.peek(2).getType() == lSquare) {
                 assignStatement();
                 mustBeThisToken(data, semi);
             } else {
                 Token identifier = mustBeThisToken(data, name);
-                if (table[identifier.getText()].isVoidFunc())
-                    voidCaller();
-                else
-                    nonvoidCaller();
-                mustBeThisToken(data, semi);
+                if (table.count(identifier.getText()) && table[identifier.getText()].isFunc()) {
+                    if (table[identifier.getText()].isVoidFunc())
+                        voidCaller();
+                    else
+                        nonvoidCaller();
+                    mustBeThisToken(data, semi);
+                } else {
+                    error(identifier);
+                    std::cout << "Not a Function!" << std::endl;
+                    while(1);
+                }
             }
     }
     mark("<语句>");

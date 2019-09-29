@@ -30,6 +30,7 @@ public:
     bool isArr();
     bool isCon();
     bool isVoidFunc();
+    bool isNonvoidFunc();
     SymbolType getType();
 };
 
