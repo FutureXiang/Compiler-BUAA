@@ -11,7 +11,7 @@
 
 #include <iostream>
 #include <cstdio>
-#include "PeekQueue.hpp"
+#include "../PeekQueue.hpp"
 #include "Token.hpp"
 
 PeekQueue<Token> Tokenizer(PeekQueue<char> data);

@@ -23,3 +23,7 @@ std::string Token::toString() {
 TokenType Token::getType() {
     return type;
 }
+
+std::string Token::getText() {
+    return text;
+}

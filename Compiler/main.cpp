@@ -8,8 +8,8 @@
 
 #include <iostream>
 #include <cstdio>
-#include "Token.hpp"
-#include "Tokenizer.hpp"
+#include "Tokenize/Token.hpp"
+#include "Tokenize/Tokenizer.hpp"
 #include "Parser.hpp"
 #include "PeekQueue.cpp"
 
@@ -29,9 +29,7 @@ PeekQueue<char> readIn() {
 
 int main() {
     PeekQueue<char> data = readIn();
-    cout << "Tokenizer Result:" << endl;
     PeekQueue<Token> tokens = Tokenizer(data);
-    cout << "Parser Result:" << endl;
-    Parser(tokens);
+    Parser parser = Parser(tokens);
     return 0;
 }

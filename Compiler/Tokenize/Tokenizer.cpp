@@ -7,7 +7,7 @@
 //
 
 #include "Tokenizer.hpp"
-#include "PeekQueue.cpp"
+#include "../PeekQueue.cpp"
 using namespace std;
 
 void error(string x) {
@@ -185,7 +185,7 @@ PeekQueue<Token> Tokenizer(PeekQueue<char> data) {
         }
         if (flag) {
             tokens.add(newToken);
-            cout << newToken.toString() << endl;
+//            cout << newToken.toString() << endl;
         }
     }
     return tokens;

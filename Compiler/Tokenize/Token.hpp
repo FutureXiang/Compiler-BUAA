@@ -21,6 +21,7 @@ public:
     Token(std::string text, TokenType type);
     std::string toString();
     TokenType getType();
+    std::string getText();
 };
 
 #endif /* Token_hpp */

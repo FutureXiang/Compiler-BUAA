@@ -36,43 +36,45 @@ void mustBeInteger(PeekQueue<Token> &data) {
     if (data.peek().getType() == pluss || data.peek().getType() == minuss) {        // (+|-)＜无符号整数＞ => ＜整数＞
         Token plus_minus = printPop(data);
         Token intConstTk = mustBeThisToken(data, intConst);
+        mark("<无符号整数>");
     } else {
         Token intConstTk = mustBeThisToken(data, intConst);                         // ＜无符号整数＞ => ＜整数＞
+        mark("<无符号整数>");
     }
-    mark("＜整数＞");
+    mark("<整数>");
 }
 
-void factor(PeekQueue<Token> &data) {
+void Parser::factor() {
     if (data.peek().getType() == name) {
         Token identifier = printPop(data);                                          // ＜标识符＞
         if (data.peek().getType() == lSquare) {                                     // ＜标识符＞‘[’＜表达式＞‘]’
             printPop(data);
-            expr(data);
+            expr();
             mustBeThisToken(data, rSquare);
         } else if (data.peek().getType() == lBracket) {                             // ＜标识符＞ '('＜值参数表＞')' => ＜有返回值函数调用语句＞的不含<标识符>的后半段
-            nonvoidCaller(data);
+            nonvoidCaller();
         }
     } else if (data.peek().getType() == lBracket) {                                 // ‘(’＜表达式＞‘)’
         printPop(data);
-        expr(data);
+        expr();
         mustBeThisToken(data, rBracket);
     } else if (data.peek().getType() == charConst) {                                // ＜字符＞
         Token charConstTk = printPop(data);
     } else
         mustBeInteger(data);                                                        // <整数>
-    mark("＜因子＞");
+    mark("<因子>");
 }
 
-void item(PeekQueue<Token> &data) {
-    factor(data);                                                                   // ＜因子＞
+void Parser::item() {
+    factor();                                                                       // ＜因子＞
     while (data.peek().getType() == multi || data.peek().getType() == divd) {       // {＜乘法运算符＞＜因子＞}
         Token mul_div = printPop(data);
-        factor(data);
+        factor();
     }
-    mark("＜项＞");
+    mark("<项>");
 }
 
-void expr(PeekQueue<Token> &data) {
+void Parser::expr() {
     bool firstItemNegative = false;
     if (data.peek().getType() == pluss) {
         printPop(data);
@@ -80,41 +82,41 @@ void expr(PeekQueue<Token> &data) {
         firstItemNegative = true;
         printPop(data);
     }
-    item(data);
+    item();
     while (data.peek().getType() == pluss || data.peek().getType() == minuss) {     // {＜加法运算符＞＜项＞}
         Token plus_minus = printPop(data);
-        item(data);
+        item();
     }
-    mark("＜表达式＞");
+    mark("<表达式>");
 }
 
-void returnStatement(PeekQueue<Token> &data) {
+void Parser::returnStatement() {
     mustBeThisToken(data, returnKey);                                               // return['('＜表达式＞')']
     if (data.peek().getType() == lBracket) {
         printPop(data);
-        expr(data);
+        expr();
         mustBeThisToken(data, rBracket);
     }
-    mark("＜返回语句＞");
+    mark("<返回语句>");
 }
 
-void printfStatement(PeekQueue<Token> &data) {
+void Parser::printfStatement() {
     mustBeThisToken(data, print);
     mustBeThisToken(data, lBracket);                                                // printf '('
     if (data.peek().getType() == stringConst) {
         Token stringConstTk = printPop(data);                                       // ＜字符串＞
-        mark("＜字符串＞");
+        mark("<字符串>");
         if (data.peek().getType() == comma) {                                       // ＜字符串＞,＜表达式＞
             printPop(data);
-            expr(data);
+            expr();
         }
     } else
-        expr(data);                                                                 // ＜表达式＞
+        expr();                                                                 // ＜表达式＞
     mustBeThisToken(data, rBracket);                                                // ')'
-    mark("＜写语句＞");
+    mark("<写语句>");
 }
 
-void scanfStatement(PeekQueue<Token> &data) {
+void Parser::scanfStatement() {
     mustBeThisToken(data, scan);
     mustBeThisToken(data, lBracket);                                                // scanf '('
     Token identifier = mustBeThisToken(data, name);                                 // ＜标识符＞{,＜标识符＞}
@@ -123,61 +125,61 @@ void scanfStatement(PeekQueue<Token> &data) {
         Token identifier = mustBeThisToken(data, name);
     }
     mustBeThisToken(data, rBracket);                                                // ')'
-    mark("＜读语句＞");
+    mark("<读语句>");
 }
 
-void assignStatement(PeekQueue<Token> &data) {
+void Parser::assignStatement() {
     Token identifier = mustBeThisToken(data, name);                                 // ＜标识符＞
     if (data.peek().getType() == lSquare) {                                         // optional: '['＜表达式＞']'
         printPop(data);
-        expr(data);
+        expr();
         mustBeThisToken(data, rSquare);
     }
     mustBeThisToken(data, assign);                                                  // ＝＜表达式＞
-    expr(data);
-    mark("＜赋值语句＞");
+    expr();
+    mark("<赋值语句>");
 }
 
-void voidCaller(PeekQueue<Token> &data) {
+void Parser::voidCaller() {
     mustBeThisToken(data, lBracket);                                                // '('＜值参数表＞')' => ＜无返回值函数调用语句＞的不含<标识符>的后半段
     if (data.peek().getType() != rBracket)                                          // ＜值参数表＞此处禁止为空时进入，但是为空时也算＜值参数表＞，要输出
-        valueArgList(data);
-    mark("＜值参数表＞");
+        valueArgList();
+    mark("<值参数表>");
     mustBeThisToken(data, rBracket);
-    mark("＜无返回值函数调用语句＞");
+    mark("<无返回值函数调用语句>");
 }
 
-void nonvoidCaller(PeekQueue<Token> &data) {
+void Parser::nonvoidCaller() {
     mustBeThisToken(data, lBracket);                                                // '('＜值参数表＞')' => ＜有返回值函数调用语句＞的不含<标识符>的后半段
     if (data.peek().getType() != rBracket)                                          // ＜值参数表＞此处禁止为空时进入，但是为空时也算＜值参数表＞，要输出
-        valueArgList(data);
-    mark("＜值参数表＞");
+        valueArgList();
+    mark("<值参数表>");
     mustBeThisToken(data, rBracket);
-    mark("＜有返回值函数调用语句＞");
+    mark("<有返回值函数调用语句>");
 }
 
-void loopStatement(PeekQueue<Token> &data) {
+void Parser::loopStatement() {
     if (data.peek().getType() == whileKey) {                                        //  while '('＜条件＞')'＜语句＞
         printPop(data);
         mustBeThisToken(data, lBracket);
-        condition(data);
+        condition();
         mustBeThisToken(data, rBracket);
-        statement(data);
+        statement();
     } else if (data.peek().getType() == doKey) {                                    // do＜语句＞while '('＜条件＞')'
         printPop(data);
-        statement(data);
+        statement();
         mustBeThisToken(data, whileKey);
         mustBeThisToken(data, lBracket);
-        condition(data);
+        condition();
         mustBeThisToken(data, rBracket);
     } else {
         mustBeThisToken(data, forKey);                                              // for'(' ＜标识符＞＝＜表达式＞;＜条件＞; ＜标识符＞＝＜标识符＞(+|-)＜步长＞ ')'＜语句＞
         mustBeThisToken(data, lBracket);
         Token identifier = mustBeThisToken(data, name);
         mustBeThisToken(data, assign);
-        expr(data);
+        expr();
         mustBeThisToken(data, semi);
-        condition(data);
+        condition();
         mustBeThisToken(data, semi);
         
         Token identifier2 = mustBeThisToken(data, name);
@@ -186,108 +188,116 @@ void loopStatement(PeekQueue<Token> &data) {
         if (data.peek().getType() == pluss || data.peek().getType() == minuss) {
             Token plus_minus = printPop(data);
             Token step = mustBeThisToken(data, intConst);
-            mark("＜无符号整数＞");
+            mark("<无符号整数>");
             mark("<步长>");
         } else
             error(data.peek());
         mustBeThisToken(data, rBracket);
-        statement(data);
+        statement();
     }
-    mark("＜循环语句＞");
+    mark("<循环语句>");
 }
 
-void condition(PeekQueue<Token> &data) {
-    expr(data);                                                                     // ＜表达式＞
+void Parser::condition() {
+    expr();                                                                         // ＜表达式＞
     TokenType nextType = data.peek().getType();
     if (nextType == lesss || nextType == leq || nextType == great || nextType == geq || nextType == neq || nextType == equalto) {
         Token relationship = printPop(data);                                        // ＜表达式＞＜关系运算符＞＜表达式＞
-        expr(data);
+        expr();
     }
-    mark("＜条件＞");
+    mark("<条件>");
 }
 
-void ifStatement(PeekQueue<Token> &data) {
+void Parser::ifStatement() {
     mustBeThisToken(data, ifKey);                                                   // if '('＜条件＞')'＜语句＞
     mustBeThisToken(data, lBracket);
-    condition(data);
+    condition();
     mustBeThisToken(data, rBracket);
-    statement(data);
+    statement();
     if (data.peek().getType() == elseKey) {                                         // [else＜语句＞]
         printPop(data);
-        statement(data);
+        statement();
     }
-    mark("＜条件语句＞");
+    mark("<条件语句>");
 }
 
-void statement(PeekQueue<Token> &data) {
+void Parser::statement() {
     TokenType nextType = data.peek().getType();
     switch (nextType) {
         case ifKey:                                                                 // ＜条件语句＞
-            ifStatement(data);
+            ifStatement();
             break;
         case whileKey:                                                              // ＜循环语句＞
         case doKey:
         case forKey:
-            loopStatement(data);
+            loopStatement();
             break;
         case lCurly:                                                                // '{'＜语句列＞'}'
             printPop(data);
-            statementS(data);
+            statementS();
             mustBeThisToken(data, rCurly);
             break;
-        case name:                                                                  // ＜赋值语句＞;
-            assignStatement(data);
-            mustBeThisToken(data, semi);
-            break;
         case scan:                                                                  // ＜读语句＞;
-            scanfStatement(data);
+            scanfStatement();
             mustBeThisToken(data, semi);
             break;
         case print:                                                                 // ＜写语句＞;
-            printfStatement(data);
+            printfStatement();
             mustBeThisToken(data, semi);
             break;
         case semi:                                                                  // ＜空＞;
             printPop(data);
             break;
         case returnKey:                                                             // ＜返回语句＞;
-            returnStatement(data);
+            returnStatement();
             mustBeThisToken(data, semi);
             break;
-        default:                                                                    // ＜有返回值函数调用语句＞; | ＜无返回值函数调用语句＞;
-            // TODO: 如何区分void和non-void ?????
-            mustBeThisToken(data, semi);
-            break;
+        default:                                                                    // ＜有返回值函数调用语句＞; | ＜无返回值函数调用语句＞; | ＜赋值语句＞;
+            if (data.peek(2).getType() == assign) {
+                assignStatement();
+                mustBeThisToken(data, semi);
+            } else {
+                Token identifier = mustBeThisToken(data, name);
+                if (table[identifier.getText()].isVoidFunc())
+                    voidCaller();
+                else
+                    nonvoidCaller();
+                mustBeThisToken(data, semi);
+            }
     }
-    mark("＜语句＞");
+    mark("<语句>");
 }
 
-void statementS(PeekQueue<Token> &data) {
+void Parser::statementS() {
     while (data.peek().getType() != rCurly) {                                       // {＜语句＞}
-        statement(data);
+        statement();
     }
-    mark("＜语句列＞");
+    mark("<语句列>");
 }
 
-void codeBlock(PeekQueue<Token> &data) {
+void Parser::codeBlock() {
     if (data.peek().getType() == constKey)
-        constDeclare(data);
+        constDeclare();
     if (data.peek().getType() == intKey || data.peek().getType() == charKey) {
-        varDeclare(data);
+        varDeclare();
     }
-    statementS(data);
-    mark("＜复合语句＞");
+    statementS();
+    mark("<复合语句>");
 }
 
-void declareHead(PeekQueue<Token> &data) {
+void Parser::declareHead() {                                                        // 仅仅被＜有返回值函数定义＞调用！
     Token type = printPop(data);
     if (type.getType() != intKey && type.getType() != charKey)                      // int|char
         error(type);
     Token identifier = mustBeThisToken(data, name);
-    mark("＜声明头部＞");
+    if (type.getType() == intKey)
+        table[identifier.getText()] = Symbol(identifier.getText(), intFunct);
+    else
+        table[identifier.getText()] = Symbol(identifier.getText(), charFunct);
+    mark("<声明头部>");
 }
 
-void constDefine(PeekQueue<Token> &data) {
+void Parser::constDefine() {
     if (data.peek().getType() == intKey) {                                          // int＜标识符＞＝＜整数＞{,＜标识符＞＝＜整数＞}
         Token type = printPop(data);
         Token identifier = mustBeThisToken(data, name);
@@ -312,10 +322,10 @@ void constDefine(PeekQueue<Token> &data) {
         }
     } else
         error(data.peek());
-    mark("＜常量定义＞");
+    mark("<常量定义>");
 }
 
-void varDefine(PeekQueue<Token> &data) {
+void Parser::varDefine() {
     Token type = printPop(data);
     if (type.getType() != intKey && type.getType() != charKey)                      // int|char
         error(type);
@@ -324,7 +334,7 @@ void varDefine(PeekQueue<Token> &data) {
     if (data.peek().getType() == lSquare) {
         printPop(data);
         Token arrayLength = mustBeThisToken(data, intConst);
-        mark("＜无符号整数＞");
+        mark("<无符号整数>");
         mustBeThisToken(data, rSquare);
     }
     while (data.peek().getType() == comma) {                                        // {,(＜标识符＞|＜标识符＞'['＜无符号整数＞']')}
@@ -333,36 +343,39 @@ void varDefine(PeekQueue<Token> &data) {
         if (data.peek().getType() == lSquare) {
             printPop(data);
             Token arrayLength = mustBeThisToken(data, intConst);
-            mark("＜无符号整数＞");
+            mark("<无符号整数>");
             mustBeThisToken(data, rSquare);
         }
     }
-    mark("＜变量定义＞");
+    mark("<变量定义>");
 }
 
-void constDeclare(PeekQueue<Token> &data) {                                         // const＜常量定义＞;{const＜常量定义＞;}
+void Parser::constDeclare() {                                                       // const＜常量定义＞;{const＜常量定义＞;}
     mustBeThisToken(data, constKey);
-    constDefine(data);
+    constDefine();
     mustBeThisToken(data, semi);
     while (data.peek().getType() == constKey) {
         printPop(data);
-        constDefine(data);
+        constDefine();
         mustBeThisToken(data, semi);
     }
-    mark("＜常量说明＞");
+    mark("<常量说明>");
 }
 
-void varDeclare(PeekQueue<Token> &data) {                                           // ＜变量定义＞;{＜变量定义＞;}
-    varDefine(data);
+// 程序中的变量说明：截止时，后面必为(nonvoid|void|main)函数定义，因此不能用int|char判断，应该用左括号判断
+// 复合语句中的变量说明：截止时，后面是语句列，因此可以用int|char判断
+void Parser::varDeclare() {                                                         // ＜变量定义＞;{＜变量定义＞;}
+    varDefine();
     mustBeThisToken(data, semi);
-    while (data.peek(3).getType() != lBracket) {
-        varDefine(data);
+    while ((data.peek().getType() == intKey || data.peek().getType() == charKey)
+           && data.peek(2).getType() == name && data.peek(3).getType() != lBracket) {
+        varDefine();
         mustBeThisToken(data, semi);
     }
-    mark("＜变量说明＞");
+    mark("<变量说明>");
 }
 
-void argList(PeekQueue<Token> &data) {
+void Parser::argList() {
     Token type = printPop(data);                                                    // ＜参数表＞此处进入时禁止为空
     if (type.getType() != intKey && type.getType() != charKey)
         error(type);
@@ -374,72 +387,74 @@ void argList(PeekQueue<Token> &data) {
             error(type);
         Token identifier = mustBeThisToken(data, name);
     }
-    // "＜参数表＞" 由上级有返回值函数定义、无返回值函数定义输出
+    // "<参数表>" 由上级有返回值函数定义、无返回值函数定义输出
 }
 
-void valueArgList(PeekQueue<Token> &data) {
-    expr(data);                                                                     // ＜值参数表＞此处进入时禁止为空
+void Parser::valueArgList() {
+    expr();                                                                         // ＜值参数表＞此处进入时禁止为空
     while (data.peek().getType() == comma) {                                        // ＜表达式＞{,＜表达式＞}
         printPop(data);
-        expr(data);
+        expr();
     }
-    // "＜值参数表＞" 由上级有返回值函数调用语句、无返回值函数调用语句输出
+    // "<值参数表>" 由上级有返回值函数调用语句、无返回值函数调用语句输出
 }
 
-void nonvoidFunc(PeekQueue<Token> &data) {
-    declareHead(data);
+void Parser::nonvoidFunc() {
+    declareHead();
     mustBeThisToken(data, lBracket);
     if (data.peek().getType() != rBracket)                                          // ＜参数表＞此处禁止为空时进入，但是为空时也算＜参数表＞，要输出
-        argList(data);
-    mark("＜参数表＞");
+        argList();
+    mark("<参数表>");
     mustBeThisToken(data, rBracket);
     mustBeThisToken(data, lCurly);
-    codeBlock(data);
+    codeBlock();
     mustBeThisToken(data, rCurly);
-    mark("＜有返回值函数定义＞");
+    mark("<有返回值函数定义>");
 }
 
-void voidFunc(PeekQueue<Token> &data) {
+void Parser::voidFunc() {
     mustBeThisToken(data, voidKey);
     Token identifier = mustBeThisToken(data, name);
+    table[identifier.getText()] = Symbol(identifier.getText(), voidFunct);
     mustBeThisToken(data, lBracket);
     if (data.peek().getType() != rBracket)                                          // ＜参数表＞此处禁止为空时进入，但是为空时也算＜参数表＞，要输出
-        argList(data);
-    mark("＜参数表＞");
+        argList();
+    mark("<参数表>");
     mustBeThisToken(data, rBracket);
     mustBeThisToken(data, lCurly);
-    codeBlock(data);
+    codeBlock();
     mustBeThisToken(data, rCurly);
-    mark("＜无返回值函数定义＞");
+    mark("<无返回值函数定义>");
 }
 
-void mainFunc(PeekQueue<Token> &data) {
+void Parser::mainFunc() {
     mustBeThisToken(data, voidKey);
     mustBeThisToken(data, mainKey);
     mustBeThisToken(data, lBracket);
     mustBeThisToken(data, rBracket);
     mustBeThisToken(data, lCurly);
-    codeBlock(data);
+    codeBlock();
     mustBeThisToken(data, rCurly);
-    mark("＜主函数＞");
+    mark("<主函数>");
 }
 
-void program(PeekQueue<Token> &data) {
+void Parser::program() {
     if (data.peek().getType() == constKey)
-        constDeclare(data);
+        constDeclare();
     if (data.peek(3).getType() != lBracket) {
-        varDeclare(data);
+        varDeclare();
     }
     while (!(data.peek().getType() == voidKey && data.peek(2).getType() == mainKey)) {
         if (data.peek().getType() == voidKey)
-            voidFunc(data);
+            voidFunc();
         else
-            nonvoidFunc(data);
+            nonvoidFunc();
     }
-    mainFunc(data);
+    mainFunc();
     mark("<程序>");
 }
 
-void Parser(PeekQueue<Token> data) {
-    program(data);
+Parser::Parser(PeekQueue<Token> data) {
+    this->data = data;
+    program();
 }
