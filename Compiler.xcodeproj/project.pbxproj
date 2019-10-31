@@ -126,7 +126,7 @@
 		B6AF8ABF233A2DA9002A7865 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1030;
+				LastUpgradeCheck = 1100;
 				ORGANIZATIONNAME = "Xiang Weilai";
 				TargetAttributes = {
 					B6AF8AC6233A2DA9002A7865 = {
@@ -140,6 +140,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				Base,
 			);
 			mainGroup = B6AF8ABE233A2DA9002A7865;
 			productRefGroup = B6AF8AC8233A2DAA002A7865 /* Products */;
@@ -283,6 +284,7 @@
 		B6AF8ACF233A2DAA002A7865 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -291,6 +293,7 @@
 		B6AF8AD0233A2DAA002A7865 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};

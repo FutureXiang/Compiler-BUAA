@@ -14,6 +14,6 @@
 #include "../PeekQueue.hpp"
 #include "Token.hpp"
 
-PeekQueue<Token> Tokenizer(PeekQueue<char> data);
+PeekQueue<Token> Tokenizer(PeekQueue<char> data); // Input a copy of Char List
 
 #endif /* Tokenizer_hpp */

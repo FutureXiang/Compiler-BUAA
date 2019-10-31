@@ -47,7 +47,6 @@ private:
     void mainFunc();
     void program();
 public:
-    Parser(PeekQueue<Token> data);
-    void Run();
+    Parser(PeekQueue<Token> data); // Input a copy of Token List
 };
 #endif /* Parser_hpp */
