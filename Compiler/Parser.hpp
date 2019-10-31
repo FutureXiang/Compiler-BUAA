@@ -13,13 +13,13 @@
 #include "PeekQueue.hpp"
 #include "Tokenize/Token.hpp"
 #include "Tokenize/TokenType.hpp"
-#include "SymbolTable.hpp"
-#include <map>
+#include "Symbol/SymbolTable.hpp"
+#include <vector>
 
 class Parser {
 private:
     PeekQueue<Token> data;
-    std::map<std::string, Symbol> table;
+    SymbolTable table;
     void factor();
     void item();
     void expr();
@@ -35,12 +35,11 @@ private:
     void statement();
     void statementS();
     void codeBlock();
-    void declareHead();
     void constDefine();
     void varDefine();
     void constDeclare();
     void varDeclare();
-    void argList();
+    void argList(std::vector<std::shared_ptr<SymbolVar> > &args);
     void valueArgList();
     void nonvoidFunc();
     void voidFunc();

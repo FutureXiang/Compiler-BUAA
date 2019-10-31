@@ -12,12 +12,14 @@
 #include "Tokenize/Tokenizer.hpp"
 #include "Parser.hpp"
 #include "PeekQueue.cpp"
+#include "Symbol/TestSymbolTable.hpp"
 
 using namespace std;
 
 PeekQueue<char> readIn() {
     freopen("testfile.txt", "r", stdin);
     freopen("output.txt", "w", stdout);
+    freopen("error.txt", "w", stderr);
     char character;
     
     PeekQueue<char> data = PeekQueue<char>();
@@ -28,6 +30,7 @@ PeekQueue<char> readIn() {
 }
 
 int main() {
+    // Test();
     PeekQueue<char> data = readIn();
     PeekQueue<Token> tokens = Tokenizer(data);
     Parser parser = Parser(tokens);

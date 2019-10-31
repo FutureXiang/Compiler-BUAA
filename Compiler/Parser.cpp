@@ -10,7 +10,7 @@
 #include "PeekQueue.cpp"
 
 void error(Token x) {
-    std::cout << "Error @ " << x.toString() << std::endl;
+    std::cerr << "Error @ " << x.toString() << std::endl;
 }
 
 Token printPop(PeekQueue<Token> &data) {
@@ -52,7 +52,7 @@ void Parser::factor() {
             expr();
             mustBeThisToken(data, rSquare);
         } else if (data.peek().getType() == lBracket) {                             // ＜标识符＞ '('＜值参数表＞')' => ＜有返回值函数调用语句＞的不含<标识符>的后半段
-            if (table.count(identifier.getText()) && table[identifier.getText()].isNonvoidFunc())
+            if (table.containsByName(identifier.getText()) && table.getSymbolByName(identifier.getText())->isNonvoidFunc())
                 nonvoidCaller();
             else {
                 error(identifier);
@@ -264,8 +264,8 @@ void Parser::statement() {
                 mustBeThisToken(data, semi);
             } else {
                 Token identifier = mustBeThisToken(data, name);
-                if (table.count(identifier.getText()) && table[identifier.getText()].isFunc()) {
-                    if (table[identifier.getText()].isVoidFunc())
+                if (table.containsByName(identifier.getText()) && table.getSymbolByName(identifier.getText())->isFunc()) {
+                    if (table.getSymbolByName(identifier.getText())->isVoidFunc())
                         voidCaller();
                     else
                         nonvoidCaller();
@@ -288,6 +288,7 @@ void Parser::statementS() {
 }
 
 void Parser::codeBlock() {
+    size_t prev_stack_size = table.size();
     if (data.peek().getType() == constKey)
         constDeclare();
     if (data.peek().getType() == intKey || data.peek().getType() == charKey) {
@@ -295,40 +296,43 @@ void Parser::codeBlock() {
     }
     statementS();
     mark("<复合语句>");
-}
-
-void Parser::declareHead() {                                                        // 仅仅被＜有返回值函数定义＞调用！
-    Token type = printPop(data);
-    if (type.getType() != intKey && type.getType() != charKey)                      // int|char
-        error(type);
-    Token identifier = mustBeThisToken(data, name);
-    if (type.getType() == intKey)
-        table[identifier.getText()] = Symbol(identifier.getText(), intFunct);
-    else
-        table[identifier.getText()] = Symbol(identifier.getText(), charFunct);
-    mark("<声明头部>");
+    size_t now_stack_size = table.size();
+    for (int i = 0; i < now_stack_size - prev_stack_size; ++i)
+        table.pop();
 }
 
 void Parser::constDefine() {
     if (data.peek().getType() == intKey) {                                          // int＜标识符＞＝＜整数＞{,＜标识符＞＝＜整数＞}
         Token type = printPop(data);
         Token identifier = mustBeThisToken(data, name);
+        if (!table.addVar(identifier.getText(), intCon))
+            error(identifier);
+        
         mustBeThisToken(data, assign);
         mustBeInteger(data);
         while (data.peek().getType() == comma) {
             printPop(data);
             Token identifier = mustBeThisToken(data, name);
+            if (!table.addVar(identifier.getText(), intCon))
+                error(identifier);
+            
             mustBeThisToken(data, assign);
             mustBeInteger(data);
         }
     } else if (data.peek().getType() == charKey) {                                  // char＜标识符＞＝＜字符＞{,＜标识符＞＝＜字符＞}
         Token type = printPop(data);
         Token identifier = mustBeThisToken(data, name);
+        if (!table.addVar(identifier.getText(), charCon))
+            error(identifier);
+        
         mustBeThisToken(data, assign);
         Token charConstTk = mustBeThisToken(data, charConst);
         while (data.peek().getType() == comma) {
             printPop(data);
             Token identifier = mustBeThisToken(data, name);
+            if (!table.addVar(identifier.getText(), charCon))
+                error(identifier);
+            
             mustBeThisToken(data, assign);
             Token charConstTk = mustBeThisToken(data, charConst);
         }
@@ -346,8 +350,14 @@ void Parser::varDefine() {
     if (data.peek().getType() == lSquare) {
         printPop(data);
         Token arrayLength = mustBeThisToken(data, intConst);
+        if (!table.addArr(identifier.getText(), type.getType()==intKey ? intArr : charArr, arrayLength.getText()))
+            error(identifier);
+        
         mark("<无符号整数>");
         mustBeThisToken(data, rSquare);
+    } else {
+        if (!table.addVar(identifier.getText(), type.getType()==intKey ? intVar : charVar))
+            error(identifier);
     }
     while (data.peek().getType() == comma) {                                        // {,(＜标识符＞|＜标识符＞'['＜无符号整数＞']')}
         printPop(data);
@@ -355,8 +365,14 @@ void Parser::varDefine() {
         if (data.peek().getType() == lSquare) {
             printPop(data);
             Token arrayLength = mustBeThisToken(data, intConst);
+            if (!table.addArr(identifier.getText(), type.getType()==intKey ? intArr : charArr, arrayLength.getText()))
+                error(identifier);
+            
             mark("<无符号整数>");
             mustBeThisToken(data, rSquare);
+        } else {
+           if (!table.addVar(identifier.getText(), type.getType()==intKey ? intVar : charVar))
+               error(identifier);
         }
     }
     mark("<变量定义>");
@@ -387,17 +403,22 @@ void Parser::varDeclare() {                                                     
     mark("<变量说明>");
 }
 
-void Parser::argList() {
+void Parser::argList(std::vector<std::shared_ptr<SymbolVar> > &args) {
     Token type = printPop(data);                                                    // ＜参数表＞此处进入时禁止为空
     if (type.getType() != intKey && type.getType() != charKey)
         error(type);
     Token identifier = mustBeThisToken(data, name);
+    std::shared_ptr<SymbolVar> arg = std::make_shared<SymbolVar>(identifier.getText(), type.getType()==intKey ? intVar : charVar);
+    args.push_back(arg);
+    
     while (data.peek().getType() == comma) {                                        // {,＜类型标识符＞＜标识符＞}
         printPop(data);
         Token type = printPop(data);
         if (type.getType() != intKey && type.getType() != charKey)
             error(type);
         Token identifier = mustBeThisToken(data, name);
+        std::shared_ptr<SymbolVar> arg = std::make_shared<SymbolVar>(identifier.getText(), type.getType()==intKey ? intVar : charVar);
+        args.push_back(arg);
     }
     // "<参数表>" 由上级有返回值函数定义、无返回值函数定义输出
 }
@@ -412,11 +433,20 @@ void Parser::valueArgList() {
 }
 
 void Parser::nonvoidFunc() {
-    declareHead();
+    Token type = printPop(data);
+    if (type.getType() != intKey && type.getType() != charKey)                      // int|char
+        error(type);
+    Token identifier = mustBeThisToken(data, name);
+    mark("<声明头部>");
+
+    std::vector<std::shared_ptr<SymbolVar> > args;
     mustBeThisToken(data, lBracket);
     if (data.peek().getType() != rBracket)                                          // ＜参数表＞此处禁止为空时进入，但是为空时也算＜参数表＞，要输出
-        argList();
+        argList(args);
     mark("<参数表>");
+    if (!table.addFunc(identifier.getText(), type.getType()==intKey ? intFunct : charFunct, args))
+        error(identifier);
+    
     mustBeThisToken(data, rBracket);
     mustBeThisToken(data, lCurly);
     codeBlock();
@@ -427,11 +457,15 @@ void Parser::nonvoidFunc() {
 void Parser::voidFunc() {
     mustBeThisToken(data, voidKey);
     Token identifier = mustBeThisToken(data, name);
-    table[identifier.getText()] = Symbol(identifier.getText(), voidFunct);
+    
+    std::vector<std::shared_ptr<SymbolVar> > args;
     mustBeThisToken(data, lBracket);
     if (data.peek().getType() != rBracket)                                          // ＜参数表＞此处禁止为空时进入，但是为空时也算＜参数表＞，要输出
-        argList();
+        argList(args);
     mark("<参数表>");
+    if (!table.addFunc(identifier.getText(), voidFunct, args))
+        error(identifier);
+    
     mustBeThisToken(data, rBracket);
     mustBeThisToken(data, lCurly);
     codeBlock();
@@ -468,5 +502,6 @@ void Parser::program() {
 
 Parser::Parser(PeekQueue<Token> data) {
     this->data = data;
+    this->table = SymbolTable();
     program();
 }
