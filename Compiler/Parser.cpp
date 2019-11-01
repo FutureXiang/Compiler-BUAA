@@ -48,22 +48,26 @@ ExprType Parser::factor() {
     ExprType __factor__type__ = intType;
     if (data.peek().getType() == name) {
         Token identifier = printPop(data);                                          // ＜标识符＞
-        if (!table.containsByName(identifier.getText()))
+        if (!table.containsByName(identifier.getText())) {
             error(identifier, id_nodef);
-        if (table.getTypeByName(identifier.getText()) == charCon
+        } else {
+            if (table.getTypeByName(identifier.getText()) == charCon
                 || table.getTypeByName(identifier.getText()) == charVar)
-            __factor__type__ = charType;                                // char型因子
+                __factor__type__ = charType;                            // char型因子
+        }
         
         if (data.peek().getType() == lSquare) {                                     // ＜标识符＞‘[’＜表达式＞‘]’
             printPop(data);
             expr();
             mustBeThisToken(rSquare);
-            if (table.getTypeByName(identifier.getText()) == charArr)
+            if (table.containsByName(identifier.getText()) &&
+                table.getTypeByName(identifier.getText()) == charArr)
                 __factor__type__ = charType;                            // char型因子
 
         } else if (data.peek().getType() == lBracket) {                             // ＜标识符＞ '('＜值参数表＞')' => ＜有返回值函数调用语句＞的不含<标识符>的后半段
             nonvoidCaller();
-            if (table.getTypeByName(identifier.getText()) == charFunct)
+            if (table.containsByName(identifier.getText()) &&
+                table.getTypeByName(identifier.getText()) == charFunct)
                 __factor__type__ = charType;                            // char型因子
         }
     } else if (data.peek().getType() == lBracket) {                                 // ‘(’＜表达式＞‘)’
@@ -290,12 +294,14 @@ void Parser::statement() {
                 mustBeThisToken(semi);
             } else {
                 Token identifier = mustBeThisToken(name);
-                if (!table.containsByName(identifier.getText()))
+                if (!table.containsByName(identifier.getText())) {
                     error(identifier, id_nodef);
-                if (table.getSymbolByName(identifier.getText())->isVoidFunc())
-                    voidCaller();
-                else
-                    nonvoidCaller();
+                } else {
+                    if (table.getSymbolByName(identifier.getText())->isVoidFunc())
+                        voidCaller();
+                    else
+                        nonvoidCaller();
+                }
                 mustBeThisToken(semi);
             }
     }

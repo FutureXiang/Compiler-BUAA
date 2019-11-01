@@ -14,9 +14,9 @@ void showContent(std::vector<std::shared_ptr<Symbol> > &table) {
     std::cout << "--------------------" << std::endl;
     for(auto x: table) {
         if (x->isglobal())
-            std::cout << x->getName() << std::endl;
+            std::cout << x->getName() << " " << x->getType() << std::endl;
         else
-            std::cout << "\t" << x->getName() << std::endl;
+            std::cout << "\t" << x->getName() << " " << x->getType() << std::endl;
     }
     std::cout << "--------------------" << std::endl;
 }
@@ -72,6 +72,7 @@ bool SymbolTable::containsByName(std::string id_name) {
 }
 
 std::shared_ptr<Symbol> SymbolTable::getSymbolByName(std::string id_name) {
+    assert(name2pos.count(id_name) == 1);
     return table[name2pos[id_name]];
 }
 
