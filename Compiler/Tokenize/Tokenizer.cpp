@@ -10,8 +10,9 @@
 #include "../PeekQueue.cpp"
 using namespace std;
 
-void error(string x) {
-    cout << "Error @ " << x << endl;
+void Tokenizer::error(int line, string x) {
+    errorMessages.insert(make_pair(line, x));
+    tokens.add(Token(x, __invalidToken__));
 }
 
 bool is_indentifier_alpha(char x) {
@@ -29,13 +30,38 @@ Token classifyAndConstruct(string content) {
     return Token(content, thisType);
 }
 
-PeekQueue<Token> Tokenizer(PeekQueue<char> data) {
-    PeekQueue<Token> tokens;
+bool charSetForChar(char x) {
+    return x=='+' || x=='-' || x=='*' || x=='/' || is_indentifier_alpha(x) || isdigit(x);
+}
+
+bool _charSetForString(char x) {
+    return x==32 || x==33 || (x>=35 && x<=126);
+}
+
+bool charSetForString(string x) {
+    for(auto ch: x) {
+        if (!_charSetForString(ch))
+            return false;
+    }
+    return true;
+}
+
+bool unsignedInteger(string num) {
+    if (num=="0") return true;
+    else if (num[0]=='0') return false;
+    else return true;
+}
+
+Tokenizer::Tokenizer(std::set<std::pair<int, std::string> > &mess, PeekQueue<char> data) : errorMessages(mess) {
     
+    int lineCounter = 1;
     while (!data.empty()) {
         char now = data.pop();
-        while (!data.empty() && (isspace(now) || now == '\0'))
+        while (!data.empty() && (isspace(now) || now == '\0')) {
+            if (now == '\n')
+                lineCounter++;
             now = data.pop();
+        }
         if (data.empty() && (isspace(now) || now == '\0'))
             break;
         Token newToken;
@@ -100,7 +126,7 @@ PeekQueue<Token> Tokenizer(PeekQueue<char> data) {
                         flag = true;
                     }
                     else
-                        error(pre);
+                        error(lineCounter, pre);
                 } else if (now == '=') {
                     // "=" OR "=="
                     if (data.peek() == '=') {
@@ -139,12 +165,16 @@ PeekQueue<Token> Tokenizer(PeekQueue<char> data) {
                     while (!data.empty() && data.peek() != '\'' && data.peek() != '\n')
                         content += data.pop();
                     if (data.empty())
-                        error("'"+content+"\\EOF");
+                        error(lineCounter, "'"+content+"\\EOF");
                     else if (data.peek() == '\n') {
-                        error("'"+content+"\\NEWLINE");
+                        error(lineCounter, "'"+content+"\\NEWLINE");
                         data.pop();
+                        lineCounter++;
                     } else if (content.length() != 1) {
-                        error("'"+content+"'");
+                        error(lineCounter, "'"+content+"' too long");
+                        data.pop();
+                    } else if (!charSetForChar(content[0])) {
+                        error(lineCounter, "'"+content+"' invalid");
                         data.pop();
                     }
                     else {
@@ -157,9 +187,13 @@ PeekQueue<Token> Tokenizer(PeekQueue<char> data) {
                     while (!data.empty() && data.peek() != '"' && data.peek() != '\n')
                         content += data.pop();
                     if (data.empty())
-                        error("\""+content+"\\EOF");
+                        error(lineCounter, "\""+content+"\\EOF");
                     else if (data.peek() == '\n') {
-                        error("\""+content+"\\NEWLINE");
+                        error(lineCounter, "\""+content+"\\NEWLINE");
+                        data.pop();
+                        lineCounter++;
+                    } else if (!charSetForString(content)) {
+                        error(lineCounter, "\""+content+"\" invalid");
                         data.pop();
                     }
                     else {
@@ -171,8 +205,12 @@ PeekQueue<Token> Tokenizer(PeekQueue<char> data) {
                     string content = string(1, now);
                     while (!data.empty() && isdigit(data.peek()))
                         content += data.pop();
-                    newToken = Token(content, intConst);
-                    flag = true;
+                    if (unsignedInteger(content)) {
+                        newToken = Token(content, intConst);
+                        flag = true;
+                    } else {
+                        error(lineCounter, content+" invalid");
+                    }
                 } else if (is_indentifier_alpha(now)) {
                     string content = string(1, now);
                     while (is_indentifier_follow(data.peek()))
@@ -180,13 +218,12 @@ PeekQueue<Token> Tokenizer(PeekQueue<char> data) {
                     newToken = classifyAndConstruct(content);
                     flag = true;
                 } else
-                    error(string(1, now));
+                    error(lineCounter, string(1, now));
                 break;
         }
         if (flag) {
+            newToken.setLineNo(lineCounter);
             tokens.add(newToken);
-//            cout << newToken.toString() << endl;
         }
     }
-    return tokens;
 }

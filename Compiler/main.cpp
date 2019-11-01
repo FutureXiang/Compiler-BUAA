@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <cstdio>
+#include <set>
 #include "Tokenize/Token.hpp"
 #include "Tokenize/Tokenizer.hpp"
 #include "Parser.hpp"
@@ -31,8 +32,12 @@ PeekQueue<char> readIn() {
 
 int main() {
     // Test();
-    PeekQueue<char> data = readIn();
-    PeekQueue<Token> tokens = Tokenizer(data);
-    Parser parser = Parser(tokens);
+    set<std::pair<int, std::string> > errorMessages;
+    
+    Tokenizer tokenizer = Tokenizer(errorMessages, readIn());
+    Parser parser = Parser(errorMessages, tokenizer.tokens);
+    
+    for(auto message: tokenizer.errorMessages)
+        cerr << message.first << " " << message.second << endl;
     return 0;
 }

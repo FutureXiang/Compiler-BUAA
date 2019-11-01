@@ -27,3 +27,7 @@ TokenType Token::getType() {
 std::string Token::getText() {
     return text;
 }
+
+void Token::setLineNo(int line) {
+    lineNo = line;
+}

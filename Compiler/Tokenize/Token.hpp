@@ -17,11 +17,13 @@ private:
     std::string text;
     TokenType type;
 public:
+    int lineNo;
     Token();
     Token(std::string text, TokenType type);
     std::string toString();
     TokenType getType();
     std::string getText();
+    void setLineNo(int line);
 };
 
 #endif /* Token_hpp */

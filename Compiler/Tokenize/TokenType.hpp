@@ -13,6 +13,7 @@
 #include <string>
 
 enum TokenType {
+    __invalidToken__,
     name,
     intConst, charConst, stringConst,
     constKey, intKey, charKey, voidKey, mainKey,

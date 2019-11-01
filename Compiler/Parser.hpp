@@ -15,6 +15,7 @@
 #include "Tokenize/TokenType.hpp"
 #include "Symbol/SymbolTable.hpp"
 #include <vector>
+#include <set>
 
 class Parser {
 private:
@@ -45,7 +46,12 @@ private:
     void voidFunc();
     void mainFunc();
     void program();
+    
+    void error(Token x);
+    Token mustBeThisToken(TokenType type);
+    void mustBeInteger();
 public:
-    Parser(PeekQueue<Token> data); // Input a copy of Token List
+    std::set<std::pair<int, std::string> > &errorMessages;
+    Parser(std::set<std::pair<int, std::string> > &errorMessages, PeekQueue<Token> data); // Input a copy of Token List, the reference of Global Message Contrainer
 };
 #endif /* Parser_hpp */

@@ -13,7 +13,15 @@
 #include <cstdio>
 #include "../PeekQueue.hpp"
 #include "Token.hpp"
+#include <set>
 
-PeekQueue<Token> Tokenizer(PeekQueue<char> data); // Input a copy of Char List
+class Tokenizer {
+public:
+    std::set<std::pair<int, std::string> > &errorMessages;
+    void error(int line, std::string x);
+    
+    PeekQueue<Token> tokens;
+    Tokenizer(std::set<std::pair<int, std::string> > &errorMessages, PeekQueue<char> data); // Input a copy of Char List, the reference of Global Message Contrainer
+};
 
 #endif /* Tokenizer_hpp */
