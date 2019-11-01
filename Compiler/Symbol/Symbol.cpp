@@ -13,9 +13,10 @@
  * Symbol: Base Class for {SymbolVar, SymbolArr, SymbolFunc}
  * ------------------------------------------------------------ */
 
-Symbol::Symbol(std::string id_name, SymbolType id_type) {
+Symbol::Symbol(std::string id_name, SymbolType id_type, bool is_global) {
     name = id_name;
     type = id_type;
+    global = is_global;
 }
 
 bool Symbol::isFunc() {
@@ -54,7 +55,7 @@ std::string Symbol::getName() {
 * SymbolVar: Derived Class from Symbol
 * ------------------------------------------------------------ */
 
-SymbolVar::SymbolVar(std::string id_name, SymbolType id_type): Symbol(id_name, id_type) {
+SymbolVar::SymbolVar(std::string id_name, SymbolType id_type, bool is_global): Symbol(id_name, id_type, is_global) {
     std::cout << "construction of name = " << name << std::endl;
 }
 
@@ -62,7 +63,7 @@ SymbolVar::SymbolVar(std::string id_name, SymbolType id_type): Symbol(id_name, i
 * SymbolArr: Derived Class from Symbol
 * ------------------------------------------------------------ */
 
-SymbolArr::SymbolArr(std::string id_name, SymbolType id_type, std::string dim): Symbol(id_name, id_type) {
+SymbolArr::SymbolArr(std::string id_name, SymbolType id_type, bool is_global, std::string dim): Symbol(id_name, id_type, is_global) {
     dimension = dim;
     std::cout << "construction of name = " << name << std::endl;
 }
@@ -71,7 +72,7 @@ SymbolArr::SymbolArr(std::string id_name, SymbolType id_type, std::string dim): 
 * SymbolFunct: Derived Class from Symbol
 * ------------------------------------------------------------ */
 
-SymbolFunct::SymbolFunct(std::string id_name, SymbolType id_type, std::vector<std::shared_ptr<SymbolVar> > argList): Symbol(id_name, id_type) {
+SymbolFunct::SymbolFunct(std::string id_name, SymbolType id_type, bool is_global, std::vector<std::shared_ptr<SymbolVar> > argList): Symbol(id_name, id_type, is_global) {
     args = argList;
     std::cout << "construction of name = " << name << std::endl;
 }

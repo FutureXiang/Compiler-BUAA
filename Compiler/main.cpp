@@ -13,7 +13,6 @@
 #include "Tokenize/Tokenizer.hpp"
 #include "Parser.hpp"
 #include "PeekQueue.cpp"
-#include "Symbol/TestSymbolTable.hpp"
 
 using namespace std;
 

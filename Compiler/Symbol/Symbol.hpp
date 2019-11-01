@@ -13,6 +13,9 @@
 #include <vector>
 #include <iostream>
 
+enum ExprType {
+    intType, charType
+};
 
 enum SymbolType {
     voidFunct, intFunct, charFunct,
@@ -25,8 +28,9 @@ class Symbol {
 protected:
     std::string name;
     SymbolType type;
+    bool global;
 public:
-    Symbol(std::string id_name, SymbolType id_type);
+    Symbol(std::string id_name, SymbolType id_type, bool is_global);
     Symbol() = default;
     virtual ~Symbol() {
         std::cout << "de-construction of name = " << name << std::endl;
@@ -37,6 +41,7 @@ public:
     bool isCon();
     bool isVoidFunc();
     bool isNonvoidFunc();
+    bool isglobal() {return global;}
     SymbolType getType();
     std::string getName();
 };
@@ -44,19 +49,19 @@ public:
 
 class SymbolVar: public Symbol {
 public:
-    SymbolVar(std::string id_name, SymbolType id_type);
+    SymbolVar(std::string id_name, SymbolType id_type, bool is_global);
 };
 
 class SymbolArr: public Symbol {
 public:
     std::string dimension;
-    SymbolArr(std::string id_name, SymbolType id_type, std::string dim);
+    SymbolArr(std::string id_name, SymbolType id_type, bool is_global, std::string dim);
 };
 
 class SymbolFunct: public Symbol {
 public:
     std::vector<std::shared_ptr<SymbolVar> > args;
-    SymbolFunct(std::string id_name, SymbolType id_type, std::vector<std::shared_ptr<SymbolVar> > args);
+    SymbolFunct(std::string id_name, SymbolType id_type, bool is_global, std::vector<std::shared_ptr<SymbolVar> > args);
 };
 
 #endif /* Symbol_hpp */

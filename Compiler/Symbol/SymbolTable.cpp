@@ -7,35 +7,63 @@
 //
 
 #include "SymbolTable.hpp"
+#include <assert.h>
+
+
+void showContent(std::vector<std::shared_ptr<Symbol> > &table) {
+    std::cout << "--------------------" << std::endl;
+    for(auto x: table) {
+        if (x->isglobal())
+            std::cout << x->getName() << std::endl;
+        else
+            std::cout << "\t" << x->getName() << std::endl;
+    }
+    std::cout << "--------------------" << std::endl;
+}
 
 /* ------------------------------------------------------------
 * SymbolTable: Polymorphic Container powered by shared_ptr
 * ------------------------------------------------------------ */
 
-bool SymbolTable::addVar(std::string id_name, SymbolType id_type) {
-    if (name2pos.count(id_name) != 0)
+bool SymbolTable::addVar(std::string id_name, SymbolType id_type, bool is_global) {
+    if (containsByName(id_name) && getSymbolByName(id_name)->isglobal() == is_global)
         return false;
-    std::shared_ptr<Symbol> sym = std::make_shared<SymbolVar>(id_name, id_type);
+    std::shared_ptr<Symbol> sym = std::make_shared<SymbolVar>(id_name, id_type, is_global);
     name2pos[id_name] = table.size();
     table.push_back(sym);
+    
+    showContent(table);
+    
     return true;
 }
 
-bool SymbolTable::addArr(std::string id_name, SymbolType id_type, std::string shape) {
-    if (name2pos.count(id_name) != 0)
+bool SymbolTable::addArr(std::string id_name, SymbolType id_type, bool is_global, std::string shape) {
+    if (containsByName(id_name) && getSymbolByName(id_name)->isglobal() == is_global)
         return false;
-    std::shared_ptr<Symbol> sym = std::make_shared<SymbolArr>(id_name, id_type, shape);
+    std::shared_ptr<Symbol> sym = std::make_shared<SymbolArr>(id_name, id_type, is_global, shape);
     name2pos[id_name] = table.size();
     table.push_back(sym);
+    
+    showContent(table);
+    
     return true;
 }
 
-bool SymbolTable::addFunc(std::string id_name, SymbolType id_type, std::vector<std::shared_ptr<SymbolVar> > args) {
-    if (name2pos.count(id_name) != 0)
+bool SymbolTable::addFunc(std::string id_name, SymbolType id_type, bool is_global, std::vector<std::shared_ptr<SymbolVar> > args) {
+    assert(is_global == true);
+    // Function must be global!
+    if (containsByName(id_name) && getSymbolByName(id_name)->isglobal() == true)
         return false;
-    std::shared_ptr<Symbol> sym = std::make_shared<SymbolFunct>(id_name, id_type, args);
+    std::shared_ptr<Symbol> sym = std::make_shared<SymbolFunct>(id_name, id_type, is_global, args);
     name2pos[id_name] = table.size();
     table.push_back(sym);
+    
+    // Function arguments always local, thus they must be valid !
+    for (auto arg: args)
+        addVar(arg->getName(), arg->getType(), false);
+    
+    showContent(table);
+    
     return true;
 }
 
@@ -52,10 +80,19 @@ SymbolType SymbolTable::getTypeByName(std::string id_name) {
 }
 
 void SymbolTable::pop() {
-    name2pos.erase(table.back()->getName());
+    std::string name = table.back()->getName();
+    name2pos.erase(name);
     table.pop_back();
+    for (int pos = table.size() - 1; pos >= 0 ; --pos) {
+        if (table[pos]->getName() == name) {
+            name2pos[name] = pos;
+            break;
+        }
+    }
+    showContent(table);
 }
 
 size_t SymbolTable::size() {
     return table.size();
 }
+

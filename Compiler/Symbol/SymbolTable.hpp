@@ -17,14 +17,14 @@
 class SymbolTable {
 private:
     std::vector<std::shared_ptr<Symbol> > table;
-    std::map<std::string, size_t> name2pos;
+    std::map<std::string, size_t> name2pos;     // pointer to the closest symbol!
 public:
     SymbolTable() = default;
     ~SymbolTable() = default;
 
-    bool addVar(std::string id_name, SymbolType id_type);
-    bool addArr(std::string id_name, SymbolType id_type, std::string shape);
-    bool addFunc(std::string id_name, SymbolType id_type, std::vector<std::shared_ptr<SymbolVar> > args);
+    bool addVar(std::string id_name, SymbolType id_type, bool is_global);
+    bool addArr(std::string id_name, SymbolType id_type, bool is_global, std::string shape);
+    bool addFunc(std::string id_name, SymbolType id_type, bool is_global, std::vector<std::shared_ptr<SymbolVar> > args);
     
     bool containsByName(std::string id_name);
     SymbolType getTypeByName(std::string id_name);

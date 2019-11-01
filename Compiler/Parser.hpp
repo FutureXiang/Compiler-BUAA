@@ -14,16 +14,18 @@
 #include "Tokenize/Token.hpp"
 #include "Tokenize/TokenType.hpp"
 #include "Symbol/SymbolTable.hpp"
+#include "Symbol/Symbol.hpp"
 #include <vector>
 #include <set>
+#include "Error.hpp"
 
 class Parser {
 private:
     PeekQueue<Token> data;
     SymbolTable table;
-    void factor();
-    void item();
-    void expr();
+    ExprType factor();
+    ExprType item();
+    ExprType expr();
     void returnStatement();
     void printfStatement();
     void scanfStatement();
@@ -36,18 +38,18 @@ private:
     void statement();
     void statementS();
     void codeBlock();
-    void constDefine();
-    void varDefine();
-    void constDeclare();
-    void varDeclare();
+    void constDefine(bool is_global);
+    void varDefine(bool is_global);
+    void constDeclare(bool is_global);
+    void varDeclare(bool is_global);
     void argList(std::vector<std::shared_ptr<SymbolVar> > &args);
-    void valueArgList();
+    std::vector<ExprType> valueArgList();
     void nonvoidFunc();
     void voidFunc();
     void mainFunc();
     void program();
     
-    void error(Token x);
+    void error(Token x, Error e);
     Token mustBeThisToken(TokenType type);
     void mustBeInteger();
 public:
