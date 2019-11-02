@@ -30,8 +30,8 @@ private:
     void printfStatement();
     void scanfStatement();
     void assignStatement();
-    void voidCaller();
-    void nonvoidCaller();
+    void voidCaller(Token identifier);
+    void nonvoidCaller(Token identifier);
     void loopStatement();
     void condition();
     void ifStatement();
@@ -50,6 +50,7 @@ private:
     void program();
     
     void error(Token x, Error e);
+    void checkCallerMatch(bool is_void, Token id, std::vector<ExprType> argtypes);
     Token mustBeThisToken(TokenType type);
     void mustBeInteger();
 public:

@@ -33,7 +33,7 @@ public:
     Symbol(std::string id_name, SymbolType id_type, bool is_global);
     Symbol() = default;
     virtual ~Symbol() {
-        std::cout << "de-construction of name = " << name << std::endl;
+//        std::cout << "de-construction of name = " << name << std::endl;
     };
     bool isFunc();
     bool isVar();

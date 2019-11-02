@@ -13,6 +13,43 @@ void Parser::error(Token x, Error e) {
     errorMessages.insert(std::make_pair(x.lineNo, x.toString() + ": " + ErrorToString(e)));
 }
 
+void Parser::checkCallerMatch(bool is_void, Token id, std::vector<ExprType> argtypes) {
+    // must exists identifier now (checked)
+    std::shared_ptr<Symbol> symbol = table.getSymbolByName(id.getText());
+    if (!symbol->isFunc() || is_void != symbol->isVoidFunc()) {
+        error(id, __othererror__);
+        return;
+    }
+    
+    std::shared_ptr<SymbolFunct> func = std::dynamic_pointer_cast<SymbolFunct>(symbol);
+    std::vector<std::shared_ptr<SymbolVar> > args = func->args;
+    
+    /*
+    std::cout << "symbol: " << symbol->getName() << " " << symbol->getType() << std::endl;
+    for (auto arg: args)
+        std::cout << "\t expected symbol: " << arg->getName() << " " << arg->getType() << std::endl;
+    for (auto arg: argtypes)
+        std::cout << "\t now  got symbol: " << arg << std::endl;
+     */
+    
+    if (args.size() != argtypes.size()) {
+        error(id, args_lenmis);
+        return;
+    }
+    
+    for (auto i = 0; i < args.size(); ++i) {
+        SymbolType arg_type_expected = args[i]->getType();
+        ExprType arg_type_got = argtypes[i];
+        if (!( (arg_type_got == charType && arg_type_expected == charVar)
+            || (arg_type_got == intType && arg_type_expected == intVar) )) {
+//            std::cout << "expected symboltype: " << arg_type_expected << "\t now  got exprtype: " << arg_type_got << std::endl;
+            error(id, args_typemis);
+            return;
+        }
+    }
+}
+
+
 Token printPop(PeekQueue<Token> &data) {
     Token token = data.pop();
     std::cout << token.toString() << std::endl;
@@ -65,7 +102,7 @@ ExprType Parser::factor() {
                 __factor__type__ = charType;                            // char型因子
 
         } else if (data.peek().getType() == lBracket) {                             // ＜标识符＞ '('＜值参数表＞')' => ＜有返回值函数调用语句＞的不含<标识符>的后半段
-            nonvoidCaller();
+            nonvoidCaller(identifier);
             if (table.containsByName(identifier.getText()) &&
                 table.getTypeByName(identifier.getText()) == charFunct)
                 __factor__type__ = charType;                            // char型因子
@@ -170,22 +207,26 @@ void Parser::assignStatement() {
     mark("<赋值语句>");
 }
 
-void Parser::voidCaller() {
+void Parser::voidCaller(Token identifier) {
     mustBeThisToken(lBracket);                                                      // '('＜值参数表＞')' => ＜无返回值函数调用语句＞的不含<标识符>的后半段
+    std::vector<ExprType> argtypes;
     if (data.peek().getType() != rBracket)                                          // ＜值参数表＞此处禁止为空时进入，但是为空时也算＜值参数表＞，要输出
-        valueArgList();
+        argtypes = valueArgList();
     mark("<值参数表>");
     mustBeThisToken(rBracket);
     mark("<无返回值函数调用语句>");
+    checkCallerMatch(true, identifier, argtypes);
 }
 
-void Parser::nonvoidCaller() {
+void Parser::nonvoidCaller(Token identifier) {
     mustBeThisToken(lBracket);                                                      // '('＜值参数表＞')' => ＜有返回值函数调用语句＞的不含<标识符>的后半段
+    std::vector<ExprType> argtypes;
     if (data.peek().getType() != rBracket)                                          // ＜值参数表＞此处禁止为空时进入，但是为空时也算＜值参数表＞，要输出
-        valueArgList();
+        argtypes = valueArgList();
     mark("<值参数表>");
     mustBeThisToken(rBracket);
     mark("<有返回值函数调用语句>");
+    checkCallerMatch(false, identifier, argtypes);
 }
 
 void Parser::loopStatement() {
@@ -298,9 +339,9 @@ void Parser::statement() {
                     error(identifier, id_nodef);
                 } else {
                     if (table.getSymbolByName(identifier.getText())->isVoidFunc())
-                        voidCaller();
+                        voidCaller(identifier);
                     else
-                        nonvoidCaller();
+                        nonvoidCaller(identifier);
                 }
                 mustBeThisToken(semi);
             }
