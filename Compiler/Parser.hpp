@@ -21,6 +21,9 @@
 
 class Parser {
 private:
+    bool has_return;
+    ExprType expected_return;
+    
     PeekQueue<Token> data;
     SymbolTable table;
     ExprType factor();

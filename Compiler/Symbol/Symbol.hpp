@@ -14,7 +14,7 @@
 #include <iostream>
 
 enum ExprType {
-    intType, charType
+    intType, charType, voidType
 };
 
 enum SymbolType {

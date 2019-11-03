@@ -152,11 +152,18 @@ ExprType Parser::expr() {
 }
 
 void Parser::returnStatement() {
-    mustBeThisToken(returnKey);                                                     // return['('＜表达式＞')']
+    ExprType type = voidType;
+    Token ret = mustBeThisToken(returnKey);                                          // return['('＜表达式＞')']
     if (data.peek().getType() == lBracket) {
         printPop(data);
-        expr();
+        type = expr();
         mustBeThisToken(rBracket);
+    }
+    if (type != expected_return) {
+        if (expected_return == voidType)
+            error(ret, void_misret);
+        else
+            error(ret, nonvoid_misret);
     }
     mark("<返回语句>");
 }
@@ -327,6 +334,7 @@ void Parser::statement() {
             break;
         case returnKey:                                                             // ＜返回语句＞;
             returnStatement();
+            has_return = true;
             mustBeThisToken(semi);
             break;
         default:                                                                    // ＜有返回值函数调用语句＞; | ＜无返回值函数调用语句＞; | ＜赋值语句＞;
@@ -362,7 +370,10 @@ void Parser::codeBlock() {
     if (data.peek().getType() == intKey || data.peek().getType() == charKey) {
         varDeclare(false);
     }
+    has_return = false;
     statementS();
+    if (expected_return != voidType && !has_return)
+        error(data.peek(), nonvoid_misret);
     mark("<复合语句>");
 }
 
@@ -522,6 +533,7 @@ void Parser::nonvoidFunc() {
     
     mustBeThisToken(rBracket);
     mustBeThisToken(lCurly);
+    expected_return = (type.getType() == intKey ? intType : charType);
     codeBlock();
     mustBeThisToken(rCurly);
     mark("<有返回值函数定义>");
@@ -551,6 +563,7 @@ void Parser::voidFunc() {
     
     mustBeThisToken(rBracket);
     mustBeThisToken(lCurly);
+    expected_return = voidType;
     codeBlock();
     mustBeThisToken(rCurly);
     mark("<无返回值函数定义>");
@@ -566,6 +579,7 @@ void Parser::mainFunc() {
     mustBeThisToken(lBracket);
     mustBeThisToken(rBracket);
     mustBeThisToken(lCurly);
+    expected_return = voidType;
     codeBlock();
     mustBeThisToken(rCurly);
     mark("<主函数>");
