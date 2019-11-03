@@ -8,6 +8,6 @@
 
 #include "Error.hpp"
 
-char ErrorToString(Error e) {
-    return 'a' + e;
+std::string ErrorToString(Error e) {
+    return std::string(1, 'a' + e);
 }

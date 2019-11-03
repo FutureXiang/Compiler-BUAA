@@ -21,6 +21,7 @@
 
 class Parser {
 private:
+    int line;
     bool has_return;
     ExprType expected_return;
     
@@ -33,7 +34,7 @@ private:
     void printfStatement();
     void scanfStatement();
     void assignStatement();
-    void voidCaller(Token identifier);
+    void voidCaller(Token identifier, bool check_argmatch);
     void nonvoidCaller(Token identifier);
     void loopStatement();
     void condition();
@@ -52,8 +53,9 @@ private:
     void mainFunc();
     void program();
     
-    void error(Token x, Error e);
+    void error(Error e);
     void checkCallerMatch(bool is_void, Token id, std::vector<ExprType> argtypes);
+    Token printPop();
     Token mustBeThisToken(TokenType type);
     void mustBeInteger();
 public:

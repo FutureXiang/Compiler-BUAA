@@ -10,9 +10,9 @@
 #include "../PeekQueue.cpp"
 using namespace std;
 
-void Tokenizer::error(int line, string x) {
-    errorMessages.insert(make_pair(line, x));
-    tokens.add(Token(x, __invalidToken__));
+void Tokenizer::error(int line, Error e) {
+    errorMessages.insert(make_pair(line, ErrorToString(e)));
+//    tokens.add(Token(x, __invalidToken__));
 }
 
 bool is_indentifier_alpha(char x) {
@@ -126,7 +126,7 @@ Tokenizer::Tokenizer(std::set<std::pair<int, std::string> > &mess, PeekQueue<cha
                         flag = true;
                     }
                     else
-                        error(lineCounter, pre);
+                        error(lineCounter, token_invalid);
                 } else if (now == '=') {
                     // "=" OR "=="
                     if (data.peek() == '=') {
@@ -165,16 +165,16 @@ Tokenizer::Tokenizer(std::set<std::pair<int, std::string> > &mess, PeekQueue<cha
                     while (!data.empty() && data.peek() != '\'' && data.peek() != '\n')
                         content += data.pop();
                     if (data.empty())
-                        error(lineCounter, "'"+content+"\\EOF");
+                        error(lineCounter, token_invalid);
                     else if (data.peek() == '\n') {
-                        error(lineCounter, "'"+content+"\\NEWLINE");
+                        error(lineCounter, token_invalid);
                         data.pop();
                         lineCounter++;
                     } else if (content.length() != 1) {
-                        error(lineCounter, "'"+content+"' too long");
+                        error(lineCounter, token_invalid);
                         data.pop();
                     } else if (!charSetForChar(content[0])) {
-                        error(lineCounter, "'"+content+"' invalid");
+                        error(lineCounter, token_invalid);
                         data.pop();
                     }
                     else {
@@ -187,13 +187,13 @@ Tokenizer::Tokenizer(std::set<std::pair<int, std::string> > &mess, PeekQueue<cha
                     while (!data.empty() && data.peek() != '"' && data.peek() != '\n')
                         content += data.pop();
                     if (data.empty())
-                        error(lineCounter, "\""+content+"\\EOF");
+                        error(lineCounter, token_invalid);
                     else if (data.peek() == '\n') {
-                        error(lineCounter, "\""+content+"\\NEWLINE");
+                        error(lineCounter, token_invalid);
                         data.pop();
                         lineCounter++;
                     } else if (!charSetForString(content)) {
-                        error(lineCounter, "\""+content+"\" invalid");
+                        error(lineCounter, token_invalid);
                         data.pop();
                     }
                     else {
@@ -209,7 +209,7 @@ Tokenizer::Tokenizer(std::set<std::pair<int, std::string> > &mess, PeekQueue<cha
                         newToken = Token(content, intConst);
                         flag = true;
                     } else {
-                        error(lineCounter, content+" invalid");
+                        error(lineCounter, token_invalid);
                     }
                 } else if (is_indentifier_alpha(now)) {
                     string content = string(1, now);
@@ -218,7 +218,7 @@ Tokenizer::Tokenizer(std::set<std::pair<int, std::string> > &mess, PeekQueue<cha
                     newToken = classifyAndConstruct(content);
                     flag = true;
                 } else
-                    error(lineCounter, string(1, now));
+                    error(lineCounter, token_invalid);
                 break;
         }
         if (flag) {

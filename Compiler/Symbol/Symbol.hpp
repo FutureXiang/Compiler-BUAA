@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <memory>
 
 enum ExprType {
     intType, charType, voidType

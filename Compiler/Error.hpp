@@ -9,6 +9,7 @@
 #ifndef Error_hpp
 #define Error_hpp
 
+#include <string>
 
 enum Error {
     token_invalid,
@@ -24,6 +25,6 @@ enum Error {
     __othererror__,
 };
 
-char ErrorToString(Error e);
+std::string ErrorToString(Error e);
 
 #endif /* Error_hpp */
