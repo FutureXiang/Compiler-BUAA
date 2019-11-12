@@ -17,20 +17,12 @@ void Parser::checkCallerMatch(bool is_void, Token id, std::vector<ExprType> argt
     // must exists identifier now (checked)
     std::shared_ptr<Symbol> symbol = table.getSymbolByName(id.getText());
     if (!symbol->isFunc() || is_void != symbol->isVoidFunc()) {
-//        error(__othererror__);
+        error(__othererror__);
         return;
     }
     
     std::shared_ptr<SymbolFunct> func = std::dynamic_pointer_cast<SymbolFunct>(symbol);
     std::vector<std::shared_ptr<SymbolVar> > args = func->args;
-    
-    /*
-    std::cout << "symbol: " << symbol->getName() << " " << symbol->getType() << std::endl;
-    for (auto arg: args)
-        std::cout << "\t expected symbol: " << arg->getName() << " " << arg->getType() << std::endl;
-    for (auto arg: argtypes)
-        std::cout << "\t now  got symbol: " << arg << std::endl;
-     */
     
     if (args.size() != argtypes.size()) {
         error(args_lenmis);
@@ -42,7 +34,6 @@ void Parser::checkCallerMatch(bool is_void, Token id, std::vector<ExprType> argt
         ExprType arg_type_got = argtypes[i];
         if (!( (arg_type_got == charType && arg_type_expected == charVar)
             || (arg_type_got == intType && arg_type_expected == intVar) )) {
-//            std::cout << "expected symboltype: " << arg_type_expected << "\t now  got exprtype: " << arg_type_got << std::endl;
             error(args_typemis);
             return;
         }
@@ -53,12 +44,12 @@ void Parser::checkCallerMatch(bool is_void, Token id, std::vector<ExprType> argt
 Token Parser::printPop() {
     Token token = data.pop();
     line = token.lineNo;
-    std::cout << token.toString() << std::endl;
+//    std::cout << token.toString() << std::endl;
     return token;
 }
 
 void mark(std::string str) {
-    std::cout << str << std::endl;
+//    std::cout << str << std::endl;
 }
 
 Token Parser::mustBeThisToken(TokenType type) {
@@ -99,7 +90,7 @@ void Parser::mustBeInteger() {
 ExprType Parser::factor() {
     ExprType __factor__type__ = intType;
     if (data.peek().getType() == name) {
-        Token identifier = printPop();                                          // ＜标识符＞
+        Token identifier = printPop();                                              // ＜标识符＞
         if (!table.containsByName(identifier.getText())) {
             error(id_nodef);
         } else {
@@ -189,7 +180,7 @@ void Parser::printfStatement() {
     mustBeThisToken(print);
     mustBeThisToken(lBracket);                                                      // printf '('
     if (data.peek().getType() == stringConst) {
-        Token stringConstTk = printPop();                                       // ＜字符串＞
+        Token stringConstTk = printPop();                                           // ＜字符串＞
         mark("<字符串>");
         if (data.peek().getType() == comma) {                                       // ＜字符串＞,＜表达式＞
             printPop();
@@ -316,7 +307,7 @@ void Parser::condition() {
     ExprType first = expr();                                                        // ＜表达式＞
     TokenType nextType = data.peek().getType();
     if (nextType == lesss || nextType == leq || nextType == great || nextType == geq || nextType == neq || nextType == equalto) {
-        Token relationship = printPop();                                        // ＜表达式＞＜关系运算符＞＜表达式＞
+        Token relationship = printPop();                                            // ＜表达式＞＜关系运算符＞＜表达式＞
         ExprType second = expr();
         if (first != intType || second != intType)
             error(cond_invalid);
@@ -421,7 +412,7 @@ void Parser::constDefine(bool is_global) {
             error(id_redef);
         
         mustBeThisToken(assign);
-        if (data.peek().getType() == pluss || data.peek().getType() == minuss) {        // (+|-)＜无符号整数＞ => ＜整数＞
+        if (data.peek().getType() == pluss || data.peek().getType() == minuss) {    // (+|-)＜无符号整数＞ => ＜整数＞
             Token plus_minus = printPop();
             if (data.peek().getType() == intConst)
                 Token intConstTk = printPop();
@@ -431,7 +422,7 @@ void Parser::constDefine(bool is_global) {
             }
             mark("<无符号整数>");
         } else {
-            if (data.peek().getType() == intConst)                                      // ＜无符号整数＞ => ＜整数＞
+            if (data.peek().getType() == intConst)                                  // ＜无符号整数＞ => ＜整数＞
                 Token intConstTk = printPop();
             else {
                 error(const_value);
@@ -447,7 +438,7 @@ void Parser::constDefine(bool is_global) {
                 error(id_redef);
             
             mustBeThisToken(assign);
-            if (data.peek().getType() == pluss || data.peek().getType() == minuss) {        // (+|-)＜无符号整数＞ => ＜整数＞
+            if (data.peek().getType() == pluss || data.peek().getType() == minuss) {// (+|-)＜无符号整数＞ => ＜整数＞
                 Token plus_minus = printPop();
                 if (data.peek().getType() == intConst)
                     Token intConstTk = printPop();
@@ -457,7 +448,7 @@ void Parser::constDefine(bool is_global) {
                 }
                 mark("<无符号整数>");
             } else {
-                if (data.peek().getType() == intConst)                                      // ＜无符号整数＞ => ＜整数＞
+                if (data.peek().getType() == intConst)                              // ＜无符号整数＞ => ＜整数＞
                     Token intConstTk = printPop();
                 else {
                     error(const_value);
@@ -564,7 +555,7 @@ void Parser::varDeclare(bool is_global) {                                       
 }
 
 void Parser::argList(std::vector<std::shared_ptr<SymbolVar> > &args) {
-    Token type = printPop();                                                    // ＜参数表＞此处进入时禁止为空
+    Token type = printPop();                                                        // ＜参数表＞此处进入时禁止为空
     if (type.getType() != intKey && type.getType() != charKey) {
 //        error(__othererror__);
     }

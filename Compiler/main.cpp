@@ -30,7 +30,6 @@ PeekQueue<char> readIn() {
 }
 
 int main() {
-    // Test();
     set<std::pair<int, std::string> > errorMessages;
     
     Tokenizer tokenizer = Tokenizer(errorMessages, readIn());
