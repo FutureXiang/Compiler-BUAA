@@ -53,6 +53,7 @@ bool SymbolTable::addFunc(std::string id_name, SymbolType id_type, bool is_globa
     assert(is_global == true);
     // Function must be global!
     if (containsByName(id_name) && getSymbolByName(id_name)->isglobal() == true) {
+        // ALTHOUGH THE FUNCTION CANNOT BE ADDED, ARGS MUST BE ADDED TO CHECK ERROR IN CODE BLOCKS
         for (auto arg: args)
             addVar(arg->getName(), arg->getType(), false);
         return false;

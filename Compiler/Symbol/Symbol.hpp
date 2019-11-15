@@ -49,8 +49,12 @@ public:
 
 
 class SymbolVar: public Symbol {
+private:
+    int valueAsInt;
 public:
     SymbolVar(std::string id_name, SymbolType id_type, bool is_global);
+    int getValueAsInt();
+    void setValueAsInt(int v);
 };
 
 class SymbolArr: public Symbol {

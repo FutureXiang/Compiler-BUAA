@@ -18,6 +18,7 @@
 #include <vector>
 #include <set>
 #include "Error.hpp"
+#include "Quadruple/Quadruple.hpp"
 
 class Parser {
 private:
@@ -27,9 +28,11 @@ private:
     
     PeekQueue<Token> data;
     SymbolTable table;
-    ExprType factor();
-    ExprType item();
-    ExprType expr();
+    QuadrupleList qcodes;
+    
+    ExprType factor(Operand *&operand);
+    ExprType item(Operand *&operand);
+    ExprType expr(Operand *&operand);
     void returnStatement();
     void printfStatement();
     void scanfStatement();
@@ -57,7 +60,7 @@ private:
     void checkCallerMatch(bool is_void, Token id, std::vector<ExprType> argtypes);
     Token printPop();
     Token mustBeThisToken(TokenType type);
-    void mustBeInteger();
+    int mustBeInteger();
 public:
     std::set<std::pair<int, std::string> > &errorMessages;
     Parser(std::set<std::pair<int, std::string> > &errorMessages, PeekQueue<Token> data); // Input a copy of Token List, the reference of Global Message Contrainer

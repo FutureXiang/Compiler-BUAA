@@ -13,9 +13,11 @@
 		B62E62C9233A6A82007EE368 /* TokenType.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B62E62C8233A6A82007EE368 /* TokenType.cpp */; };
 		B63C799A233E3A0300F57A2E /* Tokenizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B63C7998233E3A0300F57A2E /* Tokenizer.cpp */; };
 		B63C79A0233E5A9700F57A2E /* Parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B63C799E233E5A9700F57A2E /* Parser.cpp */; };
+		B65FEFCD237B8E7E008FBDD2 /* Quadruple.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B65FEFCB237B8E7E008FBDD2 /* Quadruple.cpp */; };
 		B6AF8ACB233A2DAA002A7865 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B6AF8ACA233A2DAA002A7865 /* main.cpp */; };
 		B6AF8AD3233A2F76002A7865 /* PeekQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B6AF8AD1233A2F76002A7865 /* PeekQueue.cpp */; };
 		B6AF8AD6233A361A002A7865 /* Token.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B6AF8AD4233A361A002A7865 /* Token.cpp */; };
+		B6DE0017237C24B8000546E2 /* Operand.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B6DE0016237C24B8000546E2 /* Operand.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -44,11 +46,15 @@
 		B63C799E233E5A9700F57A2E /* Parser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Parser.cpp; sourceTree = "<group>"; };
 		B63C799F233E5A9700F57A2E /* Parser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Parser.hpp; sourceTree = "<group>"; };
 		B63C79A1233E830F00F57A2E /* PeekQueue.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PeekQueue.hpp; sourceTree = "<group>"; };
+		B65FEFCB237B8E7E008FBDD2 /* Quadruple.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Quadruple.cpp; sourceTree = "<group>"; };
+		B65FEFCC237B8E7E008FBDD2 /* Quadruple.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Quadruple.hpp; sourceTree = "<group>"; };
 		B6AF8AC7233A2DAA002A7865 /* Compiler */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Compiler; sourceTree = BUILT_PRODUCTS_DIR; };
 		B6AF8ACA233A2DAA002A7865 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		B6AF8AD1233A2F76002A7865 /* PeekQueue.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PeekQueue.cpp; sourceTree = "<group>"; };
 		B6AF8AD4233A361A002A7865 /* Token.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Token.cpp; sourceTree = "<group>"; };
 		B6AF8AD5233A361A002A7865 /* Token.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Token.hpp; sourceTree = "<group>"; };
+		B6CCB918237ADC7A00E190A9 /* Operand.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Operand.hpp; sourceTree = "<group>"; };
+		B6DE0016237C24B8000546E2 /* Operand.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Operand.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -105,17 +111,29 @@
 		B6AF8AC9233A2DAA002A7865 /* Compiler */ = {
 			isa = PBXGroup;
 			children = (
+				B60C3894236C51BD0015F729 /* Error.cpp */,
 				B6AF8ACA233A2DAA002A7865 /* main.cpp */,
 				B63C799E233E5A9700F57A2E /* Parser.cpp */,
-				B60C3894236C51BD0015F729 /* Error.cpp */,
-				B60C3895236C51BD0015F729 /* Error.hpp */,
 				B6AF8AD1233A2F76002A7865 /* PeekQueue.cpp */,
+				B60C3895236C51BD0015F729 /* Error.hpp */,
 				B63C799F233E5A9700F57A2E /* Parser.hpp */,
 				B63C79A1233E830F00F57A2E /* PeekQueue.hpp */,
+				B6CCB916237ADACA00E190A9 /* Quadruple */,
 				B60C3893236B68770015F729 /* Symbol */,
 				B618A1D62340904E00DE9809 /* Tokenize */,
 			);
 			path = Compiler;
+			sourceTree = "<group>";
+		};
+		B6CCB916237ADACA00E190A9 /* Quadruple */ = {
+			isa = PBXGroup;
+			children = (
+				B6CCB918237ADC7A00E190A9 /* Operand.hpp */,
+				B6DE0016237C24B8000546E2 /* Operand.cpp */,
+				B65FEFCB237B8E7E008FBDD2 /* Quadruple.cpp */,
+				B65FEFCC237B8E7E008FBDD2 /* Quadruple.hpp */,
+			);
+			path = Quadruple;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -176,10 +194,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				B6AF8AD6233A361A002A7865 /* Token.cpp in Sources */,
+				B6DE0017237C24B8000546E2 /* Operand.cpp in Sources */,
 				B62E62C9233A6A82007EE368 /* TokenType.cpp in Sources */,
 				B6AF8AD3233A2F76002A7865 /* PeekQueue.cpp in Sources */,
 				B6AF8ACB233A2DAA002A7865 /* main.cpp in Sources */,
 				B60C3892236B675A0015F729 /* Symbol.cpp in Sources */,
+				B65FEFCD237B8E7E008FBDD2 /* Quadruple.cpp in Sources */,
 				B60C3896236C51BD0015F729 /* Error.cpp in Sources */,
 				B618A1D4234089C300DE9809 /* SymbolTable.cpp in Sources */,
 				B63C79A0233E5A9700F57A2E /* Parser.cpp in Sources */,
@@ -196,7 +216,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -255,7 +275,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;

@@ -59,6 +59,14 @@ SymbolVar::SymbolVar(std::string id_name, SymbolType id_type, bool is_global): S
 //    std::cout << "construction of name = " << name << std::endl;
 }
 
+int SymbolVar::getValueAsInt() {
+    return valueAsInt;
+}
+
+void SymbolVar::setValueAsInt(int v) {
+    valueAsInt = v;
+}
+
 /* ------------------------------------------------------------
 * SymbolArr: Derived Class from Symbol
 * ------------------------------------------------------------ */

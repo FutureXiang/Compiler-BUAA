@@ -75,19 +75,25 @@ Token Parser::mustBeThisToken(TokenType type) {
     }
 }
 
-void Parser::mustBeInteger() {
+int Parser::mustBeInteger() {
+    int value = 0;
     if (data.peek().getType() == pluss || data.peek().getType() == minuss) {        // (+|-)＜无符号整数＞ => ＜整数＞
         Token plus_minus = printPop();
         Token intConstTk = mustBeThisToken(intConst);
         mark("<无符号整数>");
+        value = std::stoi(intConstTk.getText());
+        if (plus_minus.getType() == minuss)
+            value = -value;
     } else {
         Token intConstTk = mustBeThisToken(intConst);                               // ＜无符号整数＞ => ＜整数＞
         mark("<无符号整数>");
+        value = std::stoi(intConstTk.getText());
     }
     mark("<整数>");
+    return value;
 }
 
-ExprType Parser::factor() {
+ExprType Parser::factor(Operand *&operand) {
     ExprType __factor__type__ = intType;
     if (data.peek().getType() == name) {
         Token identifier = printPop();                                              // ＜标识符＞
@@ -99,9 +105,17 @@ ExprType Parser::factor() {
                 __factor__type__ = charType;                            // char型因子
         }
         
+        Operand *sym_operand = new OperandSymbol(identifier.getText());
+        
         if (data.peek().getType() == lSquare) {                                     // ＜标识符＞‘[’＜表达式＞‘]’
             printPop();
-            ExprType subscriptType = expr();
+            
+            /* QUAD-CODE: LOAD ELEMENT TO SYMBOL */
+            Operand *subscript = nullptr;
+            operand = qcodes.allocTemp();
+            ExprType subscriptType = expr(subscript);
+            qcodes.addCode(Quadruple(LARR, operand, sym_operand, subscript));
+            
             if (subscriptType != intType)
                 error(index_notint);
             mustBeThisToken(rSquare);
@@ -110,38 +124,69 @@ ExprType Parser::factor() {
                 __factor__type__ = charType;                            // char型因子
 
         } else if (data.peek().getType() == lBracket) {                             // ＜标识符＞ '('＜值参数表＞')' => ＜有返回值函数调用语句＞的不含<标识符>的后半段
+
+            /* QUAD-CODE: LOAD ARGUMENTS, CALL FUNCTION BY LABEL,
+                          THEN GET RETURN VALUE */
             nonvoidCaller(identifier);
+            qcodes.addCode(Quadruple(CALL, new OperandLabel("__"+identifier.getText()+"__")));
+            operand = (Operand *)&qcodes.v0Symbol;
+            
             if (table.containsByName(identifier.getText()) &&
                 table.getTypeByName(identifier.getText()) == charFunct)
                 __factor__type__ = charType;                            // char型因子
+        } else {                                                                    // ＜标识符＞
+            std::shared_ptr<Symbol> thisSymbol = table.getSymbolByName(identifier.getText());
+            if (thisSymbol->isCon()) {
+                std::shared_ptr<SymbolVar> thisConSymbol = std::dynamic_pointer_cast<SymbolVar>(thisSymbol);
+                operand = new OperandInstant(thisConSymbol->getValueAsInt());
+            }
+            else
+                operand = sym_operand;
         }
     } else if (data.peek().getType() == lBracket) {                                 // ‘(’＜表达式＞‘)’
         printPop();
-        expr();
+        expr(operand);
         mustBeThisToken(rBracket);
     } else if (data.peek().getType() == charConst) {                                // ＜字符＞
         Token charConstTk = printPop();
         __factor__type__ = charType;
-    } else
-        mustBeInteger();                                                            // <整数>
+        
+        operand = new OperandInstant(charConstTk.getText()[0]);
+    } else {
+        int intValue = mustBeInteger();                                             // <整数>
+        
+        operand = new OperandInstant(intValue);
+    }
     mark("<因子>");
     return __factor__type__;
     // <表达式> ::= <char标识符>|＜char标识符＞'['＜表达式＞'] | <char型有返回值调用> | <字符>
     //         ---> 表达式的结果为char型
 }
 
-ExprType Parser::item() {
-    ExprType __factor__type__ = factor();                                           // ＜因子＞ 及其type
+ExprType Parser::item(Operand *&operand) {
+    Operand *first, *next;
+    ExprType __factor__type__ = factor(first);                                      // ＜因子＞ 及其type
     while (data.peek().getType() == multi || data.peek().getType() == divd) {       // {＜乘法运算符＞＜因子＞}
         Token mul_div = printPop();
-        factor();
+        factor(next);
         __factor__type__ = intType;
+        
+        /* QUAD-CODE: ARITHMETIC */
+        Operand *temp = qcodes.allocTemp();
+        if (mul_div.getType() == multi) {
+            qcodes.addCode(Quadruple(MULT, temp, first, next));
+        } else {
+            qcodes.addCode(Quadruple(DIV, temp, first, next));
+        }
+        first = temp;
     }
+    operand = first;
     mark("<项>");
     return __factor__type__;
 }
 
-ExprType Parser::expr() {
+ExprType Parser::expr(Operand *&operand) {
+    Operand *first, *next;
     bool firstItemNegative = false;
     if (data.peek().getType() == pluss) {
         printPop();
@@ -149,12 +194,29 @@ ExprType Parser::expr() {
         firstItemNegative = true;
         printPop();
     }
-    ExprType __factor__type__ = item();
+    ExprType __factor__type__ = item(first);
+    if (firstItemNegative) {
+        /* QUAD-CODE: ARITHMETIC */
+        Operand *temp = qcodes.allocTemp();
+        qcodes.addCode(Quadruple(SUB, temp, (Operand *)&qcodes.zeroInstant, first));
+        first = temp;
+    }
+
     while (data.peek().getType() == pluss || data.peek().getType() == minuss) {     // {＜加法运算符＞＜项＞}
         Token plus_minus = printPop();
-        item();
+        item(next);
         __factor__type__ = intType;
+        
+        /* QUAD-CODE: ARITHMETIC */
+        Operand *temp = qcodes.allocTemp();
+        if (plus_minus.getType() == pluss) {
+            qcodes.addCode(Quadruple(ADD, temp, first, next));
+        } else {
+            qcodes.addCode(Quadruple(SUB, temp, first, next));
+        }
+        first = temp;
     }
+    operand = first;
     mark("<表达式>");
     return __factor__type__;
 }
@@ -164,7 +226,13 @@ void Parser::returnStatement() {
     mustBeThisToken(returnKey);                                                     // return['('＜表达式＞')']
     if (data.peek().getType() == lBracket) {
         printPop();
-        type = expr();
+        Operand *temp = nullptr;
+        type = expr(temp);
+        
+        /* QUAD-CODE: MOVE RETURN-VALUE TO v0, THEN RETURN */
+        qcodes.addCode(Quadruple(MV, (Operand *)&qcodes.v0Symbol, temp));
+        qcodes.addCode(Quadruple(RET));
+        
         mustBeThisToken(rBracket);
     }
     if (type != expected_return) {
@@ -177,6 +245,8 @@ void Parser::returnStatement() {
 }
 
 void Parser::printfStatement() {
+    // TODO ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Operand *temp = nullptr;
     mustBeThisToken(print);
     mustBeThisToken(lBracket);                                                      // printf '('
     if (data.peek().getType() == stringConst) {
@@ -184,15 +254,16 @@ void Parser::printfStatement() {
         mark("<字符串>");
         if (data.peek().getType() == comma) {                                       // ＜字符串＞,＜表达式＞
             printPop();
-            expr();
+            expr(temp);
         }
     } else
-        expr();                                                                     // ＜表达式＞
+        expr(temp);                                                                 // ＜表达式＞
     mustBeThisToken(rBracket);                                                      // ')'
     mark("<写语句>");
 }
 
 void Parser::scanfStatement() {
+    // TODO ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     mustBeThisToken(scan);
     mustBeThisToken(lBracket);                                                      // scanf '('
     Token identifier = mustBeThisToken(name);                                       // ＜标识符＞{,＜标识符＞}
@@ -215,21 +286,37 @@ void Parser::scanfStatement() {
 }
 
 void Parser::assignStatement() {
+    Operand *result = nullptr;
     Token identifier = mustBeThisToken(name);                                       // ＜标识符＞
     if (!table.containsByName(identifier.getText()))
         error(id_nodef);
     SymbolType type = table.getTypeByName(identifier.getText());
     if (type == intCon || type == charCon)
         error(const_assign);
+    
+    Operand *sym_operand = new OperandSymbol(identifier.getText());
+    
     if (data.peek().getType() == lSquare) {                                         // optional: '['＜表达式＞']'
         printPop();
-        ExprType subscriptType = expr();
+        
+        Operand *subscript = nullptr;
+        ExprType subscriptType = expr(subscript);
+
         if (subscriptType != intType)
             error(index_notint);
         mustBeThisToken(rSquare);
+        mustBeThisToken(assign);                                                    // ＜标识符＞'['＜表达式＞']'＝＜表达式＞
+        expr(result);
+        
+        /* QUAD-CODE: SAVE VALUE TO ELEMENT */
+        qcodes.addCode(Quadruple(SARR, result, sym_operand, subscript));
+    } else {
+        mustBeThisToken(assign);                                                    // ＜标识符＞＝＜表达式＞
+        expr(result);
+        
+        /* QUAD-CODE: SAVE VALUE TO SYMBOL */
+        qcodes.addCode(Quadruple(MV, sym_operand, result));
     }
-    mustBeThisToken(assign);                                                        // ＝＜表达式＞
-    expr();
     mark("<赋值语句>");
 }
 
@@ -277,7 +364,8 @@ void Parser::loopStatement() {
         if (!table.containsByName(identifier.getText()))
             error(id_nodef);
         mustBeThisToken(assign);
-        expr();
+        Operand *temp = nullptr;
+        expr(temp);
         mustBeThisToken(semi);
         condition();
         mustBeThisToken(semi);
@@ -304,11 +392,12 @@ void Parser::loopStatement() {
 }
 
 void Parser::condition() {
-    ExprType first = expr();                                                        // ＜表达式＞
+    Operand *temp = nullptr;
+    ExprType first = expr(temp);                                                        // ＜表达式＞
     TokenType nextType = data.peek().getType();
     if (nextType == lesss || nextType == leq || nextType == great || nextType == geq || nextType == neq || nextType == equalto) {
         Token relationship = printPop();                                            // ＜表达式＞＜关系运算符＞＜表达式＞
-        ExprType second = expr();
+        ExprType second = expr(temp);
         if (first != intType || second != intType)
             error(cond_invalid);
     } else {
@@ -410,21 +499,29 @@ void Parser::constDefine(bool is_global) {
         Token identifier = mustBeThisToken(name);
         if (!table.addVar(identifier.getText(), intCon, is_global))
             error(id_redef);
+        std::shared_ptr<Symbol> thisSymbol = table.getSymbolByName(identifier.getText());
+        std::shared_ptr<SymbolVar> thisConSymbol = std::dynamic_pointer_cast<SymbolVar>(thisSymbol);
         
         mustBeThisToken(assign);
         if (data.peek().getType() == pluss || data.peek().getType() == minuss) {    // (+|-)＜无符号整数＞ => ＜整数＞
             Token plus_minus = printPop();
-            if (data.peek().getType() == intConst)
+            if (data.peek().getType() == intConst) {
                 Token intConstTk = printPop();
-            else {
+                int value = std::stoi(intConstTk.getText());
+                if (plus_minus.getType() == minuss)
+                    value = -value;
+                thisConSymbol->setValueAsInt(value);
+            } else {
                 error(const_value);
                 data.pop();
             }
             mark("<无符号整数>");
         } else {
-            if (data.peek().getType() == intConst)                                  // ＜无符号整数＞ => ＜整数＞
+            if (data.peek().getType() == intConst) {                                // ＜无符号整数＞ => ＜整数＞
                 Token intConstTk = printPop();
-            else {
+                int value = std::stoi(intConstTk.getText());
+                thisConSymbol->setValueAsInt(value);
+            } else {
                 error(const_value);
                 data.pop();
             }
@@ -436,21 +533,29 @@ void Parser::constDefine(bool is_global) {
             Token identifier = mustBeThisToken(name);
             if (!table.addVar(identifier.getText(), intCon, is_global))
                 error(id_redef);
+            std::shared_ptr<Symbol> thisSymbol = table.getSymbolByName(identifier.getText());
+            std::shared_ptr<SymbolVar> thisConSymbol = std::dynamic_pointer_cast<SymbolVar>(thisSymbol);
             
             mustBeThisToken(assign);
             if (data.peek().getType() == pluss || data.peek().getType() == minuss) {// (+|-)＜无符号整数＞ => ＜整数＞
                 Token plus_minus = printPop();
-                if (data.peek().getType() == intConst)
+                if (data.peek().getType() == intConst) {
                     Token intConstTk = printPop();
-                else {
+                    int value = std::stoi(intConstTk.getText());
+                    if (plus_minus.getType() == minuss)
+                        value = -value;
+                    thisConSymbol->setValueAsInt(value);
+                } else {
                     error(const_value);
                     data.pop();
                 }
                 mark("<无符号整数>");
             } else {
-                if (data.peek().getType() == intConst)                              // ＜无符号整数＞ => ＜整数＞
+                if (data.peek().getType() == intConst) {                            // ＜无符号整数＞ => ＜整数＞
                     Token intConstTk = printPop();
-                else {
+                    int value = std::stoi(intConstTk.getText());
+                    thisConSymbol->setValueAsInt(value);
+                } else {
                     error(const_value);
                     data.pop();
                 }
@@ -463,11 +568,15 @@ void Parser::constDefine(bool is_global) {
         Token identifier = mustBeThisToken(name);
         if (!table.addVar(identifier.getText(), charCon, is_global))
             error(id_redef);
+        std::shared_ptr<Symbol> thisSymbol = table.getSymbolByName(identifier.getText());
+        std::shared_ptr<SymbolVar> thisConSymbol = std::dynamic_pointer_cast<SymbolVar>(thisSymbol);
         
         mustBeThisToken(assign);
-        if (data.peek().getType() == charConst)
+        if (data.peek().getType() == charConst) {
             Token charConstTk = printPop();
-        else {
+            char value = charConstTk.getText()[0];
+            thisConSymbol->setValueAsInt(value);
+        } else {
             error(const_value);
             data.pop();
         }
@@ -476,11 +585,15 @@ void Parser::constDefine(bool is_global) {
             Token identifier = mustBeThisToken(name);
             if (!table.addVar(identifier.getText(), charCon, is_global))
                 error(id_redef);
+            std::shared_ptr<Symbol> thisSymbol = table.getSymbolByName(identifier.getText());
+            std::shared_ptr<SymbolVar> thisConSymbol = std::dynamic_pointer_cast<SymbolVar>(thisSymbol);
             
             mustBeThisToken(assign);
-            if (data.peek().getType() == charConst)
+            if (data.peek().getType() == charConst) {
                 Token charConstTk = printPop();
-            else {
+                char value = charConstTk.getText()[0];
+                thisConSymbol->setValueAsInt(value);
+            } else {
                 error(const_value);
                 data.pop();
             }
@@ -506,9 +619,15 @@ void Parser::varDefine(bool is_global) {
         
         mark("<无符号整数>");
         mustBeThisToken(rSquare);
+
+        /* QUAD-CODE: variable array define */
+        qcodes.addCode(Quadruple(VAR, new OperandSymbol(identifier.getText()), new OperandInstant(std::stoi(arrayLength.getText()))));
     } else {
         if (!table.addVar(identifier.getText(), type.getType()==intKey ? intVar : charVar, is_global))
             error(id_redef);
+
+        /* QUAD-CODE: variable define */
+        qcodes.addCode(Quadruple(VAR, new OperandSymbol(identifier.getText())));
     }
     while (data.peek().getType() == comma) {                                        // {,(＜标识符＞|＜标识符＞'['＜无符号整数＞']')}
         printPop();
@@ -521,9 +640,15 @@ void Parser::varDefine(bool is_global) {
             
             mark("<无符号整数>");
             mustBeThisToken(rSquare);
+
+            /* QUAD-CODE: variable array define */
+            qcodes.addCode(Quadruple(VAR, new OperandSymbol(identifier.getText()), new OperandInstant(std::stoi(arrayLength.getText()))));
         } else {
            if (!table.addVar(identifier.getText(), type.getType()==intKey ? intVar : charVar, is_global))
                error(id_redef);
+
+            /* QUAD-CODE: variable define */
+            qcodes.addCode(Quadruple(VAR, new OperandSymbol(identifier.getText())));
         }
     }
     mark("<变量定义>");
@@ -577,12 +702,20 @@ void Parser::argList(std::vector<std::shared_ptr<SymbolVar> > &args) {
 }
 
 std::vector<ExprType> Parser::valueArgList() {
+    Operand *arg = nullptr;
     std::vector<ExprType> argtypes;
-    argtypes.push_back(expr());                                                     // ＜值参数表＞此处进入时禁止为空
+    std::vector<Operand *> argvalues;
+    argtypes.push_back(expr(arg));                                                  // ＜值参数表＞此处进入时禁止为空
+    argvalues.push_back(arg);
+    
     while (data.peek().getType() == comma) {                                        // ＜表达式＞{,＜表达式＞}
         printPop();
-        argtypes.push_back(expr());
+        argtypes.push_back(expr(arg));
+        argvalues.push_back(arg);
     }
+    /* QUAD-CODE: MOVE VALUES TO a0, a1, a2, ...  AT THE END !!! [RECURSIVE: func(1,2,func(3,4,5))] */
+    for (int i = 0; i < argvalues.size(); ++i)
+        qcodes.addCode(Quadruple(MV, new OperandSymbol("a" + std::to_string(i)), argvalues[i]));
     // "<值参数表>" 由上级有返回值函数调用语句、无返回值函数调用语句输出
     return argtypes;
 }
@@ -595,6 +728,9 @@ void Parser::nonvoidFunc() {
     Token identifier = mustBeThisToken(name);
     mark("<声明头部>");
 
+    /* QUAD-CODE: set label here. */
+    qcodes.addCode(Quadruple(LABEL, new OperandLabel("__"+identifier.getText()+"__")));
+    
     std::vector<std::shared_ptr<SymbolVar> > args;
     mustBeThisToken(lBracket);
     if (data.peek().getType() != rBracket)                                          // ＜参数表＞此处禁止为空时进入，但是为空时也算＜参数表＞，要输出
@@ -625,6 +761,9 @@ void Parser::voidFunc() {
     mustBeThisToken(voidKey);
     Token identifier = mustBeThisToken(name);
     
+    /* QUAD-CODE: set label here. */
+    qcodes.addCode(Quadruple(LABEL, new OperandLabel("__"+identifier.getText()+"__")));
+    
     std::vector<std::shared_ptr<SymbolVar> > args;
     mustBeThisToken(lBracket);
     if (data.peek().getType() != rBracket)                                          // ＜参数表＞此处禁止为空时进入，但是为空时也算＜参数表＞，要输出
@@ -652,6 +791,9 @@ void Parser::voidFunc() {
 }
 
 void Parser::mainFunc() {
+    /* QUAD-CODE: set label here. */
+    qcodes.addCode(Quadruple(LABEL, new OperandLabel("__main__")));
+    
     mustBeThisToken(voidKey);
     mustBeThisToken(mainKey);
     mustBeThisToken(lBracket);
@@ -682,5 +824,9 @@ void Parser::program() {
 Parser::Parser(std::set<std::pair<int, std::string> > &mess, PeekQueue<Token> data) : errorMessages(mess) {
     this->data = data;
     this->table = SymbolTable();
+    this->qcodes = QuadrupleList();
     program();
+    
+    for(auto qcode: *qcodes.getQCodes())
+        std::cout << qcode.toString() << std::endl;
 }
