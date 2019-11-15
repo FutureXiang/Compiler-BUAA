@@ -21,6 +21,8 @@ enum Operator {
     LABEL,                              // Set Label  ( None )
     CALL, RET,                          // Call Function, Return Function
     VAR,                                // Var / VarArray Declare
+    WRITE_INT, WRITE_CHAR, WRITE_STR,   // printf: string / expr(int/char)
+    READ_INT, READ_CHAR,                // scanf: variable(int/char)
 };
 
 extern std::map<Operator, std::string> op2str;

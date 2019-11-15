@@ -245,25 +245,38 @@ void Parser::returnStatement() {
 }
 
 void Parser::printfStatement() {
-    // TODO ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Operand *temp = nullptr;
     mustBeThisToken(print);
     mustBeThisToken(lBracket);                                                      // printf '('
     if (data.peek().getType() == stringConst) {
         Token stringConstTk = printPop();                                           // ＜字符串＞
         mark("<字符串>");
+        Operand *string = new OperandLabel("\""+stringConstTk.getText()+"\"");
+
+        /* QUAD-CODE: .asciiz string & syscall write string */
+        qcodes.getQCodes()->insert(qcodes.getQCodes()->begin(), Quadruple(VAR, string));
+        qcodes.addCode(Quadruple(WRITE_STR, string));
+
         if (data.peek().getType() == comma) {                                       // ＜字符串＞,＜表达式＞
             printPop();
-            expr(temp);
+            ExprType resultType = expr(temp);
+            if (resultType == intType)
+                qcodes.addCode(Quadruple(WRITE_INT, temp));
+            else
+                qcodes.addCode(Quadruple(WRITE_CHAR, temp));
         }
-    } else
-        expr(temp);                                                                 // ＜表达式＞
+    } else {
+        ExprType resultType = expr(temp);                                           // ＜表达式＞
+        if (resultType == intType)
+            qcodes.addCode(Quadruple(WRITE_INT, temp));
+        else
+            qcodes.addCode(Quadruple(WRITE_CHAR, temp));
+    }
     mustBeThisToken(rBracket);                                                      // ')'
     mark("<写语句>");
 }
 
 void Parser::scanfStatement() {
-    // TODO ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     mustBeThisToken(scan);
     mustBeThisToken(lBracket);                                                      // scanf '('
     Token identifier = mustBeThisToken(name);                                       // ＜标识符＞{,＜标识符＞}
@@ -272,6 +285,12 @@ void Parser::scanfStatement() {
     SymbolType type = table.getTypeByName(identifier.getText());
     if (type == intCon || type == charCon)
         error(const_assign);
+    else if (type == intVar)
+        /* QUAD-CODE: syscall read variable */
+        qcodes.addCode(Quadruple(READ_INT, new OperandSymbol(identifier.getText())));
+    else if (type == charVar)
+        qcodes.addCode(Quadruple(READ_CHAR, new OperandSymbol(identifier.getText())));
+
     while (data.peek().getType() == comma) {
         printPop();
         Token identifier = mustBeThisToken(name);
@@ -280,6 +299,11 @@ void Parser::scanfStatement() {
         SymbolType type = table.getTypeByName(identifier.getText());
         if (type == intCon || type == charCon)
             error(const_assign);
+        else if (type == intVar)
+            /* QUAD-CODE: syscall read variable */
+            qcodes.addCode(Quadruple(READ_INT, new OperandSymbol(identifier.getText())));
+        else if (type == charVar)
+            qcodes.addCode(Quadruple(READ_CHAR, new OperandSymbol(identifier.getText())));
     }
     mustBeThisToken(rBracket);                                                      // ')'
     mark("<读语句>");
