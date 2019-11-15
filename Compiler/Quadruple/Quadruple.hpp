@@ -36,16 +36,19 @@ public:
 class QuadrupleList {
 private:
     std::vector<Quadruple> qcode;
+    int stringCounter;
     int labelCounter;
     int tempCounter;
     std::stack<Operand *> allocedButFree;
 public:
     static const std::string temp_head;
     static const std::string label_head;
+    static const std::string string_head;
     static const OperandInstant zeroInstant;
     static const OperandSymbol v0Symbol;
 
     QuadrupleList() = default;
+    std::string allocStringName();
     std::string allocLabel();
     Operand *allocTemp();
     void addCode(Quadruple code);

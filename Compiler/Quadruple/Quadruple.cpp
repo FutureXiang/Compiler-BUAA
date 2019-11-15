@@ -9,6 +9,10 @@
 #include "Quadruple.hpp"
 #include <iostream>
 
+std::string QuadrupleList::allocStringName() {
+    return string_head + std::to_string(stringCounter++);
+}
+
 std::string QuadrupleList::allocLabel() {
     return label_head + std::to_string(labelCounter++);
 }
@@ -33,6 +37,7 @@ void QuadrupleList::addCode(Quadruple code) {
 
 const std::string QuadrupleList::temp_head = "t";
 const std::string QuadrupleList::label_head = "label_";
+const std::string QuadrupleList::string_head = "str_";
 const OperandInstant QuadrupleList::zeroInstant = OperandInstant(0);
 const OperandSymbol QuadrupleList::v0Symbol = OperandSymbol("v0");
 

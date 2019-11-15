@@ -129,7 +129,8 @@ ExprType Parser::factor(Operand *&operand) {
                           THEN GET RETURN VALUE */
             nonvoidCaller(identifier);
             qcodes.addCode(Quadruple(CALL, new OperandLabel("__"+identifier.getText()+"__")));
-            operand = (Operand *)&qcodes.v0Symbol;
+            operand = qcodes.allocTemp();
+            qcodes.addCode(Quadruple(MV, operand, (Operand *)&qcodes.v0Symbol));
             
             if (table.containsByName(identifier.getText()) &&
                 table.getTypeByName(identifier.getText()) == charFunct)
@@ -251,7 +252,7 @@ void Parser::printfStatement() {
     if (data.peek().getType() == stringConst) {
         Token stringConstTk = printPop();                                           // ＜字符串＞
         mark("<字符串>");
-        Operand *string = new OperandLabel("\""+stringConstTk.getText()+"\"");
+        Operand *string = new OperandString(stringConstTk.getText(), qcodes.allocStringName());
 
         /* QUAD-CODE: .asciiz string & syscall write string */
         qcodes.getQCodes()->insert(qcodes.getQCodes()->begin(), Quadruple(VAR, string));
@@ -769,6 +770,10 @@ void Parser::nonvoidFunc() {
     else
         prev_stack_size++;
     
+    /* QUAD-CODE: add "VAR declare"s, but actually they ARE A0,A1,A2,...  */
+    for (auto arg: args)
+        qcodes.addCode(Quadruple(VAR, new OperandSymbol(arg->getName())));
+    
     mustBeThisToken(rBracket);
     mustBeThisToken(lCurly);
     expected_return = (type.getType() == intKey ? intType : charType);
@@ -801,6 +806,10 @@ void Parser::voidFunc() {
         error(id_redef);
     else
         prev_stack_size++;
+    
+    /* QUAD-CODE: add "VAR declare"s, but actually they ARE A0,A1,A2,...  */
+    for (auto arg: args)
+        qcodes.addCode(Quadruple(VAR, new OperandSymbol(arg->getName())));
     
     mustBeThisToken(rBracket);
     mustBeThisToken(lCurly);

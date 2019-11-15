@@ -29,8 +29,9 @@ extern std::map<Operator, std::string> op2str;
 
 
 class Operand {
-private:
 public:
+    std::string name;
+    
     Operand() = default;
     virtual ~Operand() {};
     virtual std::string toString() = 0;
@@ -46,10 +47,9 @@ public:
  */
 
 class OperandSymbol: public Operand {
-private:
-    std::string name;
-    bool is_temp;
 public:
+    bool is_temp;
+
     OperandSymbol(std::string symbolName) {
         name = symbolName;
         is_temp = false;
@@ -68,9 +68,9 @@ public:
 
 
 class OperandInstant: public Operand {
-private:
-    int value;
 public:
+    int value;
+
     OperandInstant(int v) {
         value = v;
     }
@@ -80,10 +80,24 @@ public:
 };
 
 
-class OperandLabel: public Operand {
-private:
-    std::string label;
+class OperandString: public Operand {
 public:
+    std::string value;
+
+    OperandString(std::string v, std::string n) {
+        value = v;
+        name = n;
+    }
+    std::string toString() override {
+        return "\"" + value + "\"" + " (" + name + ")";
+    }
+};
+
+
+class OperandLabel: public Operand {
+public:
+    std::string label;
+
     OperandLabel(std::string l) {
         label = l;
     }
