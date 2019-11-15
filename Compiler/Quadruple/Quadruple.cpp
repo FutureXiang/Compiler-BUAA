@@ -74,3 +74,11 @@ std::string Quadruple::toString() {
         str.append(", " + second->toString());
     return str;
 }
+
+OperandSymbol* QuadrupleList::getOperandSymbol(std::shared_ptr<Symbol> symbol) {
+    if (operandSymbolPool.count(symbol) == 0) {
+        return operandSymbolPool[symbol] = new OperandSymbol(now_scope_prefix + symbol->getName());
+    } else {
+        return operandSymbolPool[symbol];
+    }
+}

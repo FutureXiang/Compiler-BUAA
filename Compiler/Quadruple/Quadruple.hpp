@@ -9,9 +9,11 @@
 #ifndef Quadruple_hpp
 #define Quadruple_hpp
 
+#include "../Symbol/Symbol.hpp"
 #include "Operand.hpp"
 #include <vector>
 #include <stack>
+#include <map>
 
 
 class Quadruple {
@@ -40,6 +42,7 @@ private:
     int labelCounter;
     int tempCounter;
     std::stack<Operand *> allocedButFree;
+    std::map<std::shared_ptr<Symbol>, OperandSymbol *> operandSymbolPool;
 public:
     static const std::string temp_head;
     static const std::string label_head;
@@ -55,6 +58,9 @@ public:
     std::vector<Quadruple> *getQCodes() {
         return &qcode;
     }
+    
+    std::string now_scope_prefix = "_global_";
+    OperandSymbol *getOperandSymbol(std::shared_ptr<Symbol> symbol);
 };
 
 

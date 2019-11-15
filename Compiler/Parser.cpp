@@ -105,7 +105,7 @@ ExprType Parser::factor(Operand *&operand) {
                 __factor__type__ = charType;                            // char型因子
         }
         
-        Operand *sym_operand = new OperandSymbol(identifier.getText());
+        Operand *sym_operand = qcodes.getOperandSymbol(table.getSymbolByName(identifier.getText()));
         
         if (data.peek().getType() == lSquare) {                                     // ＜标识符＞‘[’＜表达式＞‘]’
             printPop();
@@ -288,9 +288,9 @@ void Parser::scanfStatement() {
         error(const_assign);
     else if (type == intVar)
         /* QUAD-CODE: syscall read variable */
-        qcodes.addCode(Quadruple(READ_INT, new OperandSymbol(identifier.getText())));
+        qcodes.addCode(Quadruple(READ_INT, qcodes.getOperandSymbol(table.getSymbolByName(identifier.getText()))));
     else if (type == charVar)
-        qcodes.addCode(Quadruple(READ_CHAR, new OperandSymbol(identifier.getText())));
+        qcodes.addCode(Quadruple(READ_CHAR, qcodes.getOperandSymbol(table.getSymbolByName(identifier.getText()))));
 
     while (data.peek().getType() == comma) {
         printPop();
@@ -302,9 +302,9 @@ void Parser::scanfStatement() {
             error(const_assign);
         else if (type == intVar)
             /* QUAD-CODE: syscall read variable */
-            qcodes.addCode(Quadruple(READ_INT, new OperandSymbol(identifier.getText())));
+            qcodes.addCode(Quadruple(READ_INT, qcodes.getOperandSymbol(table.getSymbolByName(identifier.getText()))));
         else if (type == charVar)
-            qcodes.addCode(Quadruple(READ_CHAR, new OperandSymbol(identifier.getText())));
+            qcodes.addCode(Quadruple(READ_CHAR, qcodes.getOperandSymbol(table.getSymbolByName(identifier.getText()))));
     }
     mustBeThisToken(rBracket);                                                      // ')'
     mark("<读语句>");
@@ -319,7 +319,7 @@ void Parser::assignStatement() {
     if (type == intCon || type == charCon)
         error(const_assign);
     
-    Operand *sym_operand = new OperandSymbol(identifier.getText());
+    Operand *sym_operand = qcodes.getOperandSymbol(table.getSymbolByName(identifier.getText()));
     
     if (data.peek().getType() == lSquare) {                                         // optional: '['＜表达式＞']'
         printPop();
@@ -646,13 +646,16 @@ void Parser::varDefine(bool is_global) {
         mustBeThisToken(rSquare);
 
         /* QUAD-CODE: variable array define */
-        qcodes.addCode(Quadruple(VAR, new OperandSymbol(identifier.getText()), new OperandInstant(std::stoi(arrayLength.getText()))));
+        qcodes.addCode(Quadruple(VAR,
+                                 qcodes.getOperandSymbol(table.getSymbolByName(identifier.getText())),
+                                 new OperandInstant(std::stoi(arrayLength.getText()))));
     } else {
         if (!table.addVar(identifier.getText(), type.getType()==intKey ? intVar : charVar, is_global))
             error(id_redef);
 
         /* QUAD-CODE: variable define */
-        qcodes.addCode(Quadruple(VAR, new OperandSymbol(identifier.getText())));
+        qcodes.addCode(Quadruple(VAR,
+                                 qcodes.getOperandSymbol(table.getSymbolByName(identifier.getText()))));
     }
     while (data.peek().getType() == comma) {                                        // {,(＜标识符＞|＜标识符＞'['＜无符号整数＞']')}
         printPop();
@@ -667,13 +670,16 @@ void Parser::varDefine(bool is_global) {
             mustBeThisToken(rSquare);
 
             /* QUAD-CODE: variable array define */
-            qcodes.addCode(Quadruple(VAR, new OperandSymbol(identifier.getText()), new OperandInstant(std::stoi(arrayLength.getText()))));
+            qcodes.addCode(Quadruple(VAR,
+                                     qcodes.getOperandSymbol(table.getSymbolByName(identifier.getText())),
+                                     new OperandInstant(std::stoi(arrayLength.getText()))));
         } else {
            if (!table.addVar(identifier.getText(), type.getType()==intKey ? intVar : charVar, is_global))
                error(id_redef);
 
             /* QUAD-CODE: variable define */
-            qcodes.addCode(Quadruple(VAR, new OperandSymbol(identifier.getText())));
+            qcodes.addCode(Quadruple(VAR,
+                                     qcodes.getOperandSymbol(table.getSymbolByName(identifier.getText()))));
         }
     }
     mark("<变量定义>");
@@ -755,6 +761,7 @@ void Parser::nonvoidFunc() {
 
     /* QUAD-CODE: set label here. */
     qcodes.addCode(Quadruple(LABEL, new OperandLabel("__"+identifier.getText()+"__")));
+    qcodes.now_scope_prefix = "_"+identifier.getText()+"_";
     
     std::vector<std::shared_ptr<SymbolVar> > args;
     mustBeThisToken(lBracket);
@@ -772,7 +779,7 @@ void Parser::nonvoidFunc() {
     
     /* QUAD-CODE: add "VAR declare"s, but actually they ARE A0,A1,A2,...  */
     for (auto arg: args)
-        qcodes.addCode(Quadruple(VAR, new OperandSymbol(arg->getName())));
+        qcodes.addCode(Quadruple(VAR, qcodes.getOperandSymbol(arg)));
     
     mustBeThisToken(rBracket);
     mustBeThisToken(lCurly);
@@ -792,6 +799,7 @@ void Parser::voidFunc() {
     
     /* QUAD-CODE: set label here. */
     qcodes.addCode(Quadruple(LABEL, new OperandLabel("__"+identifier.getText()+"__")));
+    qcodes.now_scope_prefix = "_"+identifier.getText()+"_";
     
     std::vector<std::shared_ptr<SymbolVar> > args;
     mustBeThisToken(lBracket);
@@ -809,7 +817,7 @@ void Parser::voidFunc() {
     
     /* QUAD-CODE: add "VAR declare"s, but actually they ARE A0,A1,A2,...  */
     for (auto arg: args)
-        qcodes.addCode(Quadruple(VAR, new OperandSymbol(arg->getName())));
+        qcodes.addCode(Quadruple(VAR, qcodes.getOperandSymbol(arg)));
     
     mustBeThisToken(rBracket);
     mustBeThisToken(lCurly);
@@ -826,6 +834,7 @@ void Parser::voidFunc() {
 void Parser::mainFunc() {
     /* QUAD-CODE: set label here. */
     qcodes.addCode(Quadruple(LABEL, new OperandLabel("__main__")));
+    qcodes.now_scope_prefix = "_main_";
     
     mustBeThisToken(voidKey);
     mustBeThisToken(mainKey);
