@@ -18,7 +18,7 @@ void Interpreter::run() {
     addCode(format("j", "__main__"));
     addCode("\n");
     while (!qcodes.empty()) {
-        scope_name = qcodes.pop().target->toString();
+        scope_name = (code = qcodes.pop()).target->toString();
         Function_Def();
         addCode("\n\n");
     }
@@ -26,7 +26,7 @@ void Interpreter::run() {
 
 
 void Interpreter::VarArrStr_Def() {
-    Quadruple code = qcodes.pop();
+    code = qcodes.pop();
     std::string identifier = code.target->name;
     name2symbol[identifier] = new UniqueSymbol(identifier, -1);
     
@@ -68,16 +68,20 @@ void Interpreter::Function_Def() {
     
     for (auto identifier: need_spaces) {
         name2symbol[identifier] = new UniqueSymbol(identifier, (--temp)*4);
-        std::cerr << identifier << " -> " << name2symbol[identifier]->addr << std::endl;
+//        std::cerr << identifier << " -> " << name2symbol[identifier]->addr << std::endl;
     }
     addCode("\n");
     
     // WE CAN USE:  "lw  $x,    name2symbol[x]->addr ($sp)" TO FETCH ARGs + VARs + TXs NOW !!!!
     while (!qcodes.empty() && qcodes.peek().op != LABEL) {
-        Quadruple code = qcodes.pop();
+        code = qcodes.pop();
+//        std::cout << code.toString() << std::endl;
+
         if (code.op == PARAM || code.op == VAR)
             continue;
-        else if (code.op >= ADD && code.op <= SNE)
+        replaceSymbolToRegs();
+
+        if (code.op >= ADD && code.op <= SNE)
             addCode(ArithComp(code));
         else if (code.op == GOTO)
             addCode(format("j", code.target->toString()));
@@ -85,10 +89,9 @@ void Interpreter::Function_Def() {
             addCode(format((code.op == BEZ) ? "beqz" : "bnez", code.target->toString()));
         else if (code.op == LI || code.op == MV) {
             if (code.op == MV && code.target->name[0] == 'a') {          // MV, a0, 5 ----> SAVE ARGS a_x TO -4(x+1)($sp)
-                Function_Call(code);
-                
+                Function_Call();
             } else
-                addCode(format((code.op == LI) ? "li" : "move", code.target->name, code.first->toString()));
+                addCode(format((code.first->is_instant) ? "li" : "move", code.target->name, code.first->toString()));
         }
         else if (code.op == LARR)
             addCode(format("lw", code.target->name, code.first->name, code.second->toString()));
@@ -106,13 +109,16 @@ void Interpreter::Function_Def() {
             addCode(ReadWrite(code));
     }
     if (scope_name != "__main__") {
+        for (auto identifier: need_spaces)
+            name2symbol.erase(identifier);
         addCode("\n");
         addCode(scope_name+"END:");
+        releaseAll();
         addCode(format("addu", "$sp", "$sp", std::to_string(need_spaces.size() * 4)));
         load_regs();
         addCode(format("jr", "$ra"));
     } else {
-        addCode(format("li", "v0", "10"));
+        addCode(format("li", "$v0", "10"));
         addCode("syscall");
     }
 }
@@ -121,18 +127,18 @@ void Interpreter::Function_Def() {
 void Interpreter::save_regs() {
     addCode(format("subu", "$sp", "$sp", "36"));
     addCode(LwSw('s', "$ra", "$sp", 0));
-    for (int i = 8; i <= 15; ++i)
+    for (int i: reg_avail)
         addCode(LwSw('s', "$"+std::to_string(i), "$sp", (i - 7)*4));
 }
 
 void Interpreter::load_regs() {
     addCode(LwSw('l', "$ra", "$sp", 0));
-    for (int i = 8; i <= 15; ++i)
+    for (int i: reg_avail)
         addCode(LwSw('l', "$"+std::to_string(i), "$sp", (i - 7)*4));
     addCode(format("addu", "$sp", "$sp", "36"));
 }
 
-void Interpreter::Function_Call(Quadruple code) {
+void Interpreter::Function_Call() {
     save_regs();
     while (code.op != CALL) {
         int offset = (std::stoi(code.target->name.substr(1)) + 1) * -4;

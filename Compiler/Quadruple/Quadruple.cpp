@@ -39,7 +39,8 @@ const std::string QuadrupleList::temp_head = "t";
 const std::string QuadrupleList::label_head = "label_";
 const std::string QuadrupleList::string_head = "str_";
 const OperandInstant QuadrupleList::zeroInstant = OperandInstant(0);
-const OperandSymbol QuadrupleList::v0Symbol = OperandSymbol("v0");
+const OperandSymbol QuadrupleList::v0Symbol = OperandSymbol("$v0");
+const OperandString QuadrupleList::slashN = OperandString("\\n", "newline");
 
 
 Quadruple::Quadruple(Operator opt) {

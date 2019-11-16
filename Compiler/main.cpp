@@ -18,8 +18,8 @@ using namespace std;
 
 PeekQueue<char> readIn() {
     freopen("testfile.txt", "r", stdin);
-    freopen("output.txt", "w", stdout);
-    freopen("error.txt", "w", stderr);
+    freopen("mips.txt", "w", stdout);
+//    freopen("error.txt", "w", stderr);
     char character;
     
     PeekQueue<char> data = PeekQueue<char>();
@@ -35,8 +35,8 @@ int main() {
     Tokenizer tokenizer = Tokenizer(errorMessages, readIn());
     Parser parser = Parser(errorMessages, tokenizer.tokens);
     
-    for(auto message: tokenizer.errorMessages)
-        cerr << message.first << " " << message.second << endl;
+//    for(auto message: tokenizer.errorMessages)
+//        cerr << message.first << " " << message.second << endl;
     
     Interpreter convert = Interpreter(parser.getQcodes());
     

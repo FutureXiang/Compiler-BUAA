@@ -47,27 +47,23 @@ std::string ReadWrite(Quadruple qcode) {
     switch (qcode.op) {
         case READ_INT:
             return format("li", "$v0", "5") + "\nsyscall\n" +
-                   LwSw('s', "$v0", qcode.target->name, 0);
+                   format("move", qcode.target->name, "$v0");
             break;
         case READ_CHAR:
             return format("li", "$v0", "12") + "\nsyscall\n" +
-                   LwSw('s', "$v0", qcode.target->name, 0);
+                   format("move", qcode.target->name, "$v0");
             break;
         case WRITE_INT:
             if (qcode.target->is_instant)
                 return format("li", "$a0", qcode.target->toString()) +"\n"+ format("li", "$v0", "1") + "\nsyscall";
-            else if (qcode.target->isTemp())
-                return format("move", "$a0", qcode.target->name) +"\n"+ format("li", "$v0", "1") + "\nsyscall";
             else
-                return LwSw('l', "$a0", qcode.target->name, 0) +"\n"+ format("li", "$v0", "1") + "\nsyscall";
+                return format("move", "$a0", qcode.target->name) +"\n"+ format("li", "$v0", "1") + "\nsyscall";
             break;
         case WRITE_CHAR:
             if (qcode.target->is_instant)
                 return format("li", "$a0", qcode.target->toString()) +"\n"+ format("li", "$v0", "11") + "\nsyscall";
-            else if (qcode.target->isTemp())
-                return format("move", "$a0", qcode.target->name) +"\n"+ format("li", "$v0", "11") + "\nsyscall";
             else
-                return LwSw('l', "$a0", qcode.target->name, 0) +"\n"+ format("li", "$v0", "11") + "\nsyscall";
+                return format("move", "$a0", qcode.target->name) +"\n"+ format("li", "$v0", "11") + "\nsyscall";
             break;
         default:
             return format("la", "$a0", qcode.target->name) +"\n"+ format("li", "$v0", "4") + "\nsyscall";

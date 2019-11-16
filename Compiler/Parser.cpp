@@ -275,6 +275,10 @@ void Parser::printfStatement() {
     }
     mustBeThisToken(rBracket);                                                      // ')'
     mark("<写语句>");
+    
+
+    /* QUAD-CODE: .asciiz "\n" */
+    qcodes.addCode(Quadruple(WRITE_STR, (Operand *)&qcodes.slashN));
 }
 
 void Parser::scanfStatement() {
@@ -869,6 +873,9 @@ Parser::Parser(std::set<std::pair<int, std::string> > &mess, PeekQueue<Token> da
     this->qcodes = QuadrupleList();
     program();
     
-    for(auto qcode: *qcodes.getQCodes())
-        std::cout << qcode.toString() << std::endl;
+    /* QUAD-CODE: .asciiz "\n" */
+    qcodes.getQCodes()->insert(qcodes.getQCodes()->begin(), Quadruple(VAR, (Operand *)&qcodes.slashN));
+    
+//    for(auto qcode: *qcodes.getQCodes())
+//        std::cout << qcode.toString() << std::endl;
 }

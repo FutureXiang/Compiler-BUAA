@@ -49,6 +49,7 @@ public:
     static const std::string string_head;
     static const OperandInstant zeroInstant;
     static const OperandSymbol v0Symbol;
+    static const OperandString slashN;
 
     QuadrupleList() = default;
     std::string allocStringName();
