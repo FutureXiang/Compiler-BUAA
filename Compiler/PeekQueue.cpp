@@ -38,3 +38,8 @@ template <class T>
 T PeekQueue<T>::peek(int n) {
     return queue[n-1];
 }
+
+template <class T>
+int PeekQueue<T>::size() {
+    return queue.size();
+}

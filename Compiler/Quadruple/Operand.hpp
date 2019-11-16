@@ -20,7 +20,7 @@ enum Operator {
     LARR, SARR,                         // L/S Array  ( Symbol, (Temp)Symbol / InstantNum )
     LABEL,                              // Set Label  ( None )
     CALL, RET,                          // Call Function, Return Function
-    VAR,                                // Var / VarArray Declare
+    VAR, PARAM,                         // Var / VarArray Declare
     WRITE_INT, WRITE_CHAR, WRITE_STR,   // printf: string / expr(int/char)
     READ_INT, READ_CHAR,                // scanf: variable(int/char)
 };
@@ -31,6 +31,7 @@ extern std::map<Operator, std::string> op2str;
 class Operand {
 public:
     std::string name;
+    bool is_instant = false, is_string = false;
     
     Operand() = default;
     virtual ~Operand() {};
@@ -73,6 +74,7 @@ public:
 
     OperandInstant(int v) {
         value = v;
+        is_instant = true;
     }
     std::string toString() override {
         return std::to_string(value);
@@ -87,6 +89,7 @@ public:
     OperandString(std::string v, std::string n) {
         value = v;
         name = n;
+        is_string = true;
     }
     std::string toString() override {
         return "\"" + value + "\"" + " (" + name + ")";

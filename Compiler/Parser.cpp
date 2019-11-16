@@ -779,7 +779,7 @@ void Parser::nonvoidFunc() {
     
     /* QUAD-CODE: add "VAR declare"s, but actually they ARE A0,A1,A2,...  */
     for (auto arg: args)
-        qcodes.addCode(Quadruple(VAR, qcodes.getOperandSymbol(arg)));
+        qcodes.addCode(Quadruple(PARAM, qcodes.getOperandSymbol(arg)));
     
     mustBeThisToken(rBracket);
     mustBeThisToken(lCurly);
@@ -817,7 +817,7 @@ void Parser::voidFunc() {
     
     /* QUAD-CODE: add "VAR declare"s, but actually they ARE A0,A1,A2,...  */
     for (auto arg: args)
-        qcodes.addCode(Quadruple(VAR, qcodes.getOperandSymbol(arg)));
+        qcodes.addCode(Quadruple(PARAM, qcodes.getOperandSymbol(arg)));
     
     mustBeThisToken(rBracket);
     mustBeThisToken(lCurly);

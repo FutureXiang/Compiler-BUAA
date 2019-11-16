@@ -36,6 +36,8 @@ std::map<Operator, std::string> op2str = {
     {RET, "RET"},
     
     {VAR, "VAR"},
+    {PARAM, "PARAM"},
+    
     {READ_INT, "READ_INT"},
     {READ_CHAR, "READ_CHAR"},
     {WRITE_INT, "WRITE_INT"},

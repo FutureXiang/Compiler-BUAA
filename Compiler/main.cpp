@@ -12,7 +12,7 @@
 #include "Tokenize/Token.hpp"
 #include "Tokenize/Tokenizer.hpp"
 #include "Parser.hpp"
-#include "PeekQueue.cpp"
+#include "Assembly/QuadToMIPS.hpp"
 
 using namespace std;
 
@@ -37,5 +37,8 @@ int main() {
     
     for(auto message: tokenizer.errorMessages)
         cerr << message.first << " " << message.second << endl;
+    
+    Interpreter convert = Interpreter(parser.getQcodes());
+    
     return 0;
 }

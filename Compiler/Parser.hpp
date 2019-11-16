@@ -64,5 +64,9 @@ private:
 public:
     std::set<std::pair<int, std::string> > &errorMessages;
     Parser(std::set<std::pair<int, std::string> > &errorMessages, PeekQueue<Token> data); // Input a copy of Token List, the reference of Global Message Contrainer
+    
+    std::vector<Quadruple> *getQcodes() {
+        return qcodes.getQCodes();
+    }
 };
 #endif /* Parser_hpp */

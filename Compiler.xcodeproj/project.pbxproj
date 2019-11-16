@@ -11,6 +11,8 @@
 		B60C3896236C51BD0015F729 /* Error.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B60C3894236C51BD0015F729 /* Error.cpp */; };
 		B618A1D4234089C300DE9809 /* SymbolTable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B618A1D2234089C300DE9809 /* SymbolTable.cpp */; };
 		B62E62C9233A6A82007EE368 /* TokenType.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B62E62C8233A6A82007EE368 /* TokenType.cpp */; };
+		B63869A2237FC9100033283B /* MIPS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B63869A0237FC9100033283B /* MIPS.cpp */; };
+		B63869A5237FDE270033283B /* QuadToMIPS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B63869A3237FDE270033283B /* QuadToMIPS.cpp */; };
 		B63C799A233E3A0300F57A2E /* Tokenizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B63C7998233E3A0300F57A2E /* Tokenizer.cpp */; };
 		B63C79A0233E5A9700F57A2E /* Parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B63C799E233E5A9700F57A2E /* Parser.cpp */; };
 		B65FEFCD237B8E7E008FBDD2 /* Quadruple.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B65FEFCB237B8E7E008FBDD2 /* Quadruple.cpp */; };
@@ -41,6 +43,10 @@
 		B618A1D3234089C300DE9809 /* SymbolTable.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SymbolTable.hpp; sourceTree = "<group>"; };
 		B62E62C7233A6959007EE368 /* TokenType.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TokenType.hpp; sourceTree = "<group>"; };
 		B62E62C8233A6A82007EE368 /* TokenType.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TokenType.cpp; sourceTree = "<group>"; };
+		B63869A0237FC9100033283B /* MIPS.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MIPS.cpp; sourceTree = "<group>"; };
+		B63869A1237FC9100033283B /* MIPS.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MIPS.hpp; sourceTree = "<group>"; };
+		B63869A3237FDE270033283B /* QuadToMIPS.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = QuadToMIPS.cpp; sourceTree = "<group>"; };
+		B63869A4237FDE270033283B /* QuadToMIPS.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = QuadToMIPS.hpp; sourceTree = "<group>"; };
 		B63C7998233E3A0300F57A2E /* Tokenizer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Tokenizer.cpp; sourceTree = "<group>"; };
 		B63C7999233E3A0300F57A2E /* Tokenizer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Tokenizer.hpp; sourceTree = "<group>"; };
 		B63C799E233E5A9700F57A2E /* Parser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Parser.cpp; sourceTree = "<group>"; };
@@ -92,6 +98,17 @@
 			path = Tokenize;
 			sourceTree = "<group>";
 		};
+		B638699F237FC89E0033283B /* Assembly */ = {
+			isa = PBXGroup;
+			children = (
+				B63869A0237FC9100033283B /* MIPS.cpp */,
+				B63869A3237FDE270033283B /* QuadToMIPS.cpp */,
+				B63869A4237FDE270033283B /* QuadToMIPS.hpp */,
+				B63869A1237FC9100033283B /* MIPS.hpp */,
+			);
+			path = Assembly;
+			sourceTree = "<group>";
+		};
 		B6AF8ABE233A2DA9002A7865 = {
 			isa = PBXGroup;
 			children = (
@@ -118,6 +135,7 @@
 				B60C3895236C51BD0015F729 /* Error.hpp */,
 				B63C799F233E5A9700F57A2E /* Parser.hpp */,
 				B63C79A1233E830F00F57A2E /* PeekQueue.hpp */,
+				B638699F237FC89E0033283B /* Assembly */,
 				B6CCB916237ADACA00E190A9 /* Quadruple */,
 				B60C3893236B68770015F729 /* Symbol */,
 				B618A1D62340904E00DE9809 /* Tokenize */,
@@ -199,6 +217,8 @@
 				B6AF8AD3233A2F76002A7865 /* PeekQueue.cpp in Sources */,
 				B6AF8ACB233A2DAA002A7865 /* main.cpp in Sources */,
 				B60C3892236B675A0015F729 /* Symbol.cpp in Sources */,
+				B63869A2237FC9100033283B /* MIPS.cpp in Sources */,
+				B63869A5237FDE270033283B /* QuadToMIPS.cpp in Sources */,
 				B65FEFCD237B8E7E008FBDD2 /* Quadruple.cpp in Sources */,
 				B60C3896236C51BD0015F729 /* Error.cpp in Sources */,
 				B618A1D4234089C300DE9809 /* SymbolTable.cpp in Sources */,

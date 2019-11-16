@@ -22,6 +22,7 @@ public:
     T peek(int n);
     T pop();
     bool empty();
+    int size();
 };
 
 #endif /* PeekQueue_hpp */
