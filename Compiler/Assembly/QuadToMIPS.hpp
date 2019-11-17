@@ -24,9 +24,14 @@ class UniqueSymbol {
 public:
     std::string name;
     int addr = -1;      // -1 for global, non-negative for local ($sp + addr)
-    UniqueSymbol(std::string n, int a) {
+    bool is_array;
+    UniqueSymbol(std::string n, bool array) {
         name = n;
-        addr = a;
+        is_array = array;
+    }
+    UniqueSymbol(std::string n) {
+        name = n;
+        is_array = false;
     }
 };
 
@@ -82,11 +87,21 @@ public:
         UniqueSymbol* symbol = name2symbol[name];
         if (symbol2reg.count(symbol) == 0) {
             symbol2reg[symbol] = allocReg(symbol);
-            if (symbol->addr == -1) {
-                addCode(format("la", "$a0", symbol->name));
-                addCode(LwSw('l', "$"+std::to_string(symbol2reg[symbol]), "$a0", 0));
-            } else
-                addCode(LwSw('l', "$"+std::to_string(symbol2reg[symbol]), "$sp", symbol->addr));
+            if (!symbol->is_array) {
+                // variable -> $x = value   [LOAD var value from .DATA / STACK]
+                if (symbol->addr == -1) {
+                    addCode(format("la", "$a0", symbol->name));
+                    addCode(LwSw('l', "$"+std::to_string(symbol2reg[symbol]), "$a0", 0));
+                } else
+                    addCode(LwSw('l', "$"+std::to_string(symbol2reg[symbol]), "$sp", symbol->addr));
+            } else {
+                // array -> $x = addr       [LOAD arr addr from .DATA / STACK]
+                if (symbol->addr == -1) {
+                    addCode(format("la", "$"+std::to_string(symbol2reg[symbol]), symbol->name));
+                } else
+                    addCode(format("addu", "$"+std::to_string(symbol2reg[symbol]), "$sp", std::to_string(symbol->addr)));
+                
+            }
         }
         return symbol2reg[symbol];
     }
@@ -122,12 +137,16 @@ public:
     }
     void releaseReg(int reg) {
         for (auto it = symbol2reg.begin(); it != symbol2reg.end(); ++it) {
+            UniqueSymbol *symbol = it->first;
             if (it->second == reg) {
-                if (it->first->addr == -1) {
-                    addCode(format("la", "$a0", it->first->name));
-                    addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0));
-                } else
-                    addCode(LwSw('s', "$"+std::to_string(reg), "$sp", it->first->addr));
+                if (!symbol->is_array) {
+                    // variable -> value = $x   [SAVE var value to .DATA / STACK]
+                    if (symbol->addr == -1) {
+                        addCode(format("la", "$a0", symbol->name));
+                        addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0));
+                    } else
+                        addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr));
+                }
                 symbol2reg.erase(it);
                 break;
             }

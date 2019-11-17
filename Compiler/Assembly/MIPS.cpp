@@ -33,7 +33,7 @@ std::string dataLabel::toString() {
             return code + ".word 0";
             break;
         case space:
-            return code + ".space " + std::to_string(arrayShape * 4);
+            return ".align 2\n" + code + ".space " + std::to_string(arrayShape * 4);
             break;
         default:
             return code + ".asciiz " + "\"" + stringContent + "\"";

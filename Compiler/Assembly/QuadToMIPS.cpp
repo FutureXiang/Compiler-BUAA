@@ -46,29 +46,50 @@ void Interpreter::Function_Def() {
     addCode(scope_name + ":");
     
     std::vector<std::string> need_spaces = std::vector<std::string>();
+    std::map<std::string, int> sp_pre_counter = std::map<std::string, int>();
+    int sp_words = 0;
     for (int i = 1; i <= qcodes.size() && qcodes.peek(i).op != LABEL; ++i) {
         Quadruple code = qcodes.peek(i);
 
-        if (code.op == PARAM || code.op == VAR)
-            if (std::find(need_spaces.begin(), need_spaces.end(), code.target->name) == need_spaces.end())
-                need_spaces.push_back(code.target->name);
-        if (code.target != nullptr && code.target->isTemp())
-            if (std::find(need_spaces.begin(), need_spaces.end(), code.target->name) == need_spaces.end())
-                need_spaces.push_back(code.target->name);
-        if (code.first != nullptr && code.first->isTemp())
-            if (std::find(need_spaces.begin(), need_spaces.end(), code.first->name) == need_spaces.end())
-                need_spaces.push_back(code.first->name);
-        if (code.second != nullptr && code.second->isTemp())
-            if (std::find(need_spaces.begin(), need_spaces.end(), code.second->name) == need_spaces.end())
-                need_spaces.push_back(code.second->name);
+        if (code.op == PARAM || code.op == VAR) {                   // PARAM, VAR, VAR[]
+            need_spaces.push_back(code.target->name);
+            int size_words = 1;
+            if (code.first != nullptr) {
+                size_words = ((OperandInstant *)code.first)->value;
+                name2symbol[code.target->name] = new UniqueSymbol(code.target->name, true);
+            } else
+                name2symbol[code.target->name] = new UniqueSymbol(code.target->name);
+            sp_pre_counter[code.target->name] = sp_words + size_words;
+            sp_words += size_words;
+        } else {                                                    // t0, t1, t2, ...
+            if (code.target != nullptr && code.target->isTemp()) {
+                if (sp_pre_counter.count(code.target->name) == 0) {
+                    need_spaces.push_back(code.target->name);
+                    sp_pre_counter[code.target->name] = (++sp_words);
+                    name2symbol[code.target->name] = new UniqueSymbol(code.target->name);
+                }
+            }
+            if (code.first != nullptr && code.first->isTemp()) {
+                if (sp_pre_counter.count(code.first->name) == 0) {
+                    need_spaces.push_back(code.first->name);
+                    sp_pre_counter[code.first->name] = (++sp_words);
+                    name2symbol[code.first->name] = new UniqueSymbol(code.first->name);
+                }
+            }
+            if (code.second != nullptr && code.second->isTemp()) {
+                if (sp_pre_counter.count(code.second->name) == 0) {
+                    need_spaces.push_back(code.second->name);
+                    sp_pre_counter[code.second->name] = (++sp_words);
+                    name2symbol[code.second->name] = new UniqueSymbol(code.second->name);
+                }
+            }
+        }
     }
-    // ARGs + VARs + TXs: count numbers
-    int temp = need_spaces.size();
-    addCode(format("subu", "$sp", "$sp", std::to_string(need_spaces.size() * 4)));
+    addCode(format("subu", "$sp", "$sp", std::to_string(sp_words * 4)));
     
     for (auto identifier: need_spaces) {
-        name2symbol[identifier] = new UniqueSymbol(identifier, (--temp)*4);
-//        std::cerr << identifier << " -> " << name2symbol[identifier]->addr << std::endl;
+        name2symbol[identifier]->addr = (sp_words - sp_pre_counter[identifier])*4;
+        std::cerr << identifier << " -> " << name2symbol[identifier]->addr << std::endl;
     }
     addCode("\n");
     
@@ -133,7 +154,7 @@ void Interpreter::Function_Def() {
         addCode("\n");
         addCode(scope_name+"END:");
         releaseAll();
-        addCode(format("addu", "$sp", "$sp", std::to_string(need_spaces.size() * 4)));
+        addCode(format("addu", "$sp", "$sp", std::to_string(sp_words * 4)));
         load_regs();
         addCode(format("jr", "$ra"));
     } else {
