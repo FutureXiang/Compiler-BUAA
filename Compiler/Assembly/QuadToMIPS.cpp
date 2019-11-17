@@ -93,14 +93,33 @@ void Interpreter::Function_Def() {
             } else
                 addCode(format((code.first->is_instant) ? "li" : "move", code.target->name, code.first->toString()));
         }
-        else if (code.op == LARR)
-            addCode(format("lw", code.target->name, code.first->name, code.second->toString()));
-        else if (code.op == SARR) {
-            if (code.target->is_instant) {
-                addCode(format("li", "a0", code.target->toString()));
-                addCode(format("sw", "a0", code.first->name, code.second->toString()));
+        else if (code.op == LARR) {
+            std::string offset = code.second->toString();
+            std::string base = code.first->name;
+            if (!code.second->is_instant) {                     // x = arr[bvar];
+                addCode(format("sll", "$a1", offset, "2"));     // $a1 = bvar * 4
+                addCode(format("addu", "$a1", base, "$a1"));    // $a1 = arr + bvar * 4
+                base = "$a1";
+                offset = "0";
             } else
-                addCode(format("sw", code.target->name, code.first->name, code.second->toString()));
+                offset = std::to_string(((OperandInstant *)code.second)->value * 4);
+            addCode(format("lw", code.target->name, base, offset));
+        }
+        else if (code.op == SARR) {
+            std::string offset = code.second->toString();
+            std::string base = code.first->name;
+            if (!code.second->is_instant) {                     // arr[bvar] = 5;
+                addCode(format("sll", "$a1", offset, "2"));     // $a1 = bvar * 4
+                addCode(format("addu", "$a1", base, "$a1"));    // $a1 = arr + bvar * 4
+                base = "$a1";
+                offset = "0";
+            } else
+                offset = std::to_string(((OperandInstant *)code.second)->value * 4);
+            if (code.target->is_instant) {
+                addCode(format("li", "$a0", code.target->toString()));
+                addCode(format("sw", "$a0", base, offset));
+            } else
+                addCode(format("sw", code.target->name, base, offset));
         } else if (code.op == LABEL)
             addCode(code.target->toString() + ":");
         else if (code.op == RET) {
@@ -143,8 +162,8 @@ void Interpreter::Function_Call() {
     while (code.op != CALL) {
         int offset = (std::stoi(code.target->name.substr(1)) + 1) * -4;
         if (code.first->is_instant) {
-            addCode(format("li", "a0", code.first->toString()));
-            addCode(LwSw('s', "a0", "$sp", offset));
+            addCode(format("li", "$a0", code.first->toString()));
+            addCode(LwSw('s', "$a0", "$sp", offset));
         } else
             addCode(LwSw('s', code.first->name, "$sp", offset));
         code = qcodes.pop();

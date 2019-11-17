@@ -144,7 +144,7 @@ std::string ArithComp(Quadruple qcode) {
             std::string x = std::to_string(((OperandInstant *)qcode.first)->value);
             std::string y = qcode.second->name;
             std::string z = qcode.target->name;
-            std::string temp = "a0";
+            std::string temp = "$a0";
             switch (qcode.op) {
                 case ADD:
                     return format("addu", z, y, x);
