@@ -110,10 +110,11 @@ public:
                         check = false;
                 }
                 if (check) {
-                    reg_used.erase(it);
-                    releaseReg(*it);
-                    reg_used.push_back(*it);
-                    return *it;
+                    int r = *it;
+                    reg_used.erase(it);     // after ERASE, *it will CHANGE (to next element) !!!
+                    releaseReg(r);
+                    reg_used.push_back(r);
+                    return r;
                 }
             }
         }
