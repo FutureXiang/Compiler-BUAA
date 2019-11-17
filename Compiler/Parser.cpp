@@ -112,8 +112,8 @@ ExprType Parser::factor(Operand *&operand) {
             
             /* QUAD-CODE: LOAD ELEMENT TO SYMBOL */
             Operand *subscript = nullptr;
-            operand = qcodes.allocTemp();
             ExprType subscriptType = expr(subscript);
+            operand = qcodes.allocTemp();       // alloc AFTER expr (otherwise it will OCCUPY A TEMP)
             qcodes.addCode(Quadruple(LARR, operand, sym_operand, subscript));
             
             if (subscriptType != intType)

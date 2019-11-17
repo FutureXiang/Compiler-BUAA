@@ -33,6 +33,9 @@ void QuadrupleList::addCode(Quadruple code) {
         allocedButFree.push(code.first);
     if (code.second != nullptr && code.second->isTemp())
         allocedButFree.push(code.second);
+    if (code.op == SARR || (code.op >= WRITE_INT && code.op <= WRITE_STR))
+        if (code.target != nullptr && code.target->isTemp())
+            allocedButFree.push(code.target);
 }
 
 const std::string QuadrupleList::temp_head = "t";

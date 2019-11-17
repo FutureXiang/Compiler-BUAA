@@ -25,6 +25,7 @@ public:
     std::string name;
     int addr = -1;      // -1 for global, non-negative for local ($sp + addr)
     bool is_array;
+    bool dirty = false;
     UniqueSymbol(std::string n, bool array) {
         name = n;
         is_array = array;
@@ -89,6 +90,8 @@ public:
             symbol2reg[symbol] = allocReg(symbol);
             if (!symbol->is_array) {
                 // variable -> $x = value   [LOAD var value from .DATA / STACK]
+                if (symbol->dirty == false)
+                    return symbol2reg[symbol];
                 if (symbol->addr == -1) {
                     addCode(format("la", "$a0", symbol->name));
                     addCode(LwSw('l', "$"+std::to_string(symbol2reg[symbol]), "$a0", 0));
@@ -146,6 +149,7 @@ public:
                         addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0));
                     } else
                         addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr));
+                    symbol->dirty = true;
                 }
                 symbol2reg.erase(it);
                 break;
@@ -159,8 +163,8 @@ public:
             if (symbol->addr == -1) {
                 addCode(format("la", "$a0", symbol->name));
                 addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0));
-            } else
-                addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr));
+            }
+            symbol->dirty = true;
         }
         symbol2reg.clear();
         reg_free = reg_avail;
