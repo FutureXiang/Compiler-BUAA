@@ -25,7 +25,7 @@ public:
     std::string name;
     int addr = -1;      // -1 for global, non-negative for local ($sp + addr)
     bool is_array;
-    bool dirty = false;
+    bool inited = false;        // only ARGS, they ARE initialized !!!
     UniqueSymbol(std::string n, bool array) {
         name = n;
         is_array = array;
@@ -90,7 +90,7 @@ public:
             symbol2reg[symbol] = allocReg(symbol);
             if (!symbol->is_array) {
                 // variable -> $x = value   [LOAD var value from .DATA / STACK]
-                if (symbol->dirty == false)
+                if (symbol->inited == false)            // Didn't have meaningful value yet, don't need to load it.
                     return symbol2reg[symbol];
                 if (symbol->addr == -1) {
                     addCode(format("la", "$a0", symbol->name));
@@ -149,14 +149,15 @@ public:
                         addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0));
                     } else
                         addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr));
-                    symbol->dirty = true;
+                    symbol->inited = true;
                 }
                 symbol2reg.erase(it);
                 break;
             }
         }
     }
-    void releaseAll() {
+    void releaseAllGlobals() {
+        // Locals are not saved back. We don't need them anymore.
         for (auto pair : symbol2reg) {
             int reg = pair.second;
             UniqueSymbol *symbol = pair.first;
@@ -164,8 +165,28 @@ public:
                 addCode(format("la", "$a0", symbol->name));
                 addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0));
             }
-            symbol->dirty = true;
+            symbol->inited = true;
         }
+        symbol2reg.clear();
+        reg_free = reg_avail;
+        reg_used = std::vector<int>();
+    }
+    void releaseAll() {
+        addCode("\n# RELEASE REGS START ----------");
+        for (auto pair : symbol2reg) {
+            int reg = pair.second;
+            UniqueSymbol *symbol = pair.first;
+            if (!symbol->is_array) {
+                // variable -> value = $x   [SAVE var value to .DATA / STACK]
+                if (symbol->addr == -1) {
+                    addCode(format("la", "$a0", symbol->name));
+                    addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0));
+                } else
+                    addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr + 4)); // $sp has EARLY -4ed for saving $ra !!!
+                symbol->inited = true;
+            }
+        }
+        addCode("\n# RELEASE REGS  END  ----------");
         symbol2reg.clear();
         reg_free = reg_avail;
         reg_used = std::vector<int>();

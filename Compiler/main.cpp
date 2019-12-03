@@ -19,7 +19,7 @@ using namespace std;
 PeekQueue<char> readIn() {
     freopen("testfile.txt", "r", stdin);
     freopen("mips.txt", "w", stdout);
-//    freopen("error.txt", "w", stderr);
+    freopen("quad.txt", "w", stderr);
     char character;
     
     PeekQueue<char> data = PeekQueue<char>();

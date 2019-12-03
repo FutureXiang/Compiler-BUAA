@@ -57,8 +57,11 @@ void Interpreter::Function_Def() {
             if (code.first != nullptr) {
                 size_words = ((OperandInstant *)code.first)->value;
                 name2symbol[code.target->name] = new UniqueSymbol(code.target->name, true);
-            } else
+            } else {
                 name2symbol[code.target->name] = new UniqueSymbol(code.target->name);
+                if (code.op == PARAM)
+                    name2symbol[code.target->name]->inited = true;      // only ARGS, they ARE initialized !!!
+            }
             sp_pre_counter[code.target->name] = sp_words + size_words;
             sp_words += size_words;
         } else {                                                    // t0, t1, t2, ...
@@ -86,7 +89,7 @@ void Interpreter::Function_Def() {
         }
     }
     addCode(format("subu", "$sp", "$sp", std::to_string(sp_words * 4)));
-    
+    std::cerr << "==========" << std::endl;
     for (auto identifier: need_spaces) {
         name2symbol[identifier]->addr = (sp_words - sp_pre_counter[identifier])*4;
         std::cerr << identifier << " -> " << name2symbol[identifier]->addr << std::endl;
@@ -96,11 +99,11 @@ void Interpreter::Function_Def() {
     // WE CAN USE:  "lw  $x,    name2symbol[x]->addr ($sp)" TO FETCH ARGs + VARs + TXs NOW !!!!
     while (!qcodes.empty() && qcodes.peek().op != LABEL) {
         code = qcodes.pop();
-//        std::cout << code.toString() << std::endl;
+//        std::cerr << code.toString() << std::endl;
 
         if (code.op == PARAM || code.op == VAR)
             continue;
-        replaceSymbolToRegs();
+        replaceSymbolToRegs();  // ALWAYS AFTER qcode.pop()!!!
 
         if (code.op >= ADD && code.op <= SNE)
             addCode(ArithComp(code));
@@ -153,9 +156,8 @@ void Interpreter::Function_Def() {
             name2symbol.erase(identifier);
         addCode("\n");
         addCode(scope_name+"END:");
-        releaseAll();
+        releaseAllGlobals();
         addCode(format("addu", "$sp", "$sp", std::to_string(sp_words * 4)));
-        load_regs();
         addCode(format("jr", "$ra"));
     } else {
         addCode(format("li", "$v0", "10"));
@@ -165,30 +167,37 @@ void Interpreter::Function_Def() {
 
 
 void Interpreter::save_regs() {
-    addCode(format("subu", "$sp", "$sp", "36"));
+    addCode("\n# SAVE ENVS START ----------");
+    addCode(format("subu", "$sp", "$sp", "4"));
     addCode(LwSw('s', "$ra", "$sp", 0));
-    for (int i: reg_avail)
-        addCode(LwSw('s', "$"+std::to_string(i), "$sp", (i - 7)*4));
+    addCode("# SAVE ENVS  END  ----------\n");
 }
 
 void Interpreter::load_regs() {
+    addCode("\n# LOAD ENVS START ----------");
     addCode(LwSw('l', "$ra", "$sp", 0));
-    for (int i: reg_avail)
-        addCode(LwSw('l', "$"+std::to_string(i), "$sp", (i - 7)*4));
-    addCode(format("addu", "$sp", "$sp", "36"));
+    addCode(format("addu", "$sp", "$sp", "4"));
+    addCode("# LOAD ENVS  END  ----------\n");
 }
 
 void Interpreter::Function_Call() {
     save_regs();
+    addCode("# SAVE ARGS START ----------");
     while (code.op != CALL) {
         int offset = (std::stoi(code.target->name.substr(1)) + 1) * -4;
+        // 可以直接保存，由Parser::valueArgList() 保证这里没有计算了。
         if (code.first->is_instant) {
             addCode(format("li", "$a0", code.first->toString()));
             addCode(LwSw('s', "$a0", "$sp", offset));
         } else
             addCode(LwSw('s', code.first->name, "$sp", offset));
         code = qcodes.pop();
+//        std::cerr << code.toString() << std::endl;
+        replaceSymbolToRegs();  // ALWAYS AFTER qcode.pop()!!!
     }
+    addCode("# SAVE ARGS  END  ----------");
+    releaseAll();
     addCode(format("jal", code.target->toString()));
     addCode("\n");
+    load_regs();
 }

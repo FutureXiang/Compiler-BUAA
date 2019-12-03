@@ -876,6 +876,6 @@ Parser::Parser(std::set<std::pair<int, std::string> > &mess, PeekQueue<Token> da
     /* QUAD-CODE: .asciiz "\n" */
     qcodes.getQCodes()->insert(qcodes.getQCodes()->begin(), Quadruple(VAR, (Operand *)&qcodes.slashN));
     
-//    for(auto qcode: *qcodes.getQCodes())
-//        std::cout << qcode.toString() << std::endl;
+    for(auto qcode: *qcodes.getQCodes())
+        std::cerr << qcode.toString() << std::endl;
 }
