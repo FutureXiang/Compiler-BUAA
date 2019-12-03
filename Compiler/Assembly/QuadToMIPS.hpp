@@ -88,9 +88,10 @@ public:
         UniqueSymbol* symbol = name2symbol[name];
         if (symbol2reg.count(symbol) == 0) {
             symbol2reg[symbol] = allocReg(symbol);
+//            std::cout << symbol->name << " is_array:" << symbol->is_array << " addr:" << symbol->addr << std::endl;
             if (!symbol->is_array) {
                 // variable -> $x = value   [LOAD var value from .DATA / STACK]
-                if (symbol->inited == false)            // Didn't have meaningful value yet, don't need to load it.
+                if (scope_name == "__main__" && symbol->inited == false)            // [MUST IN __MAIN__!!! (PROGRAM STARTS FROM MAIN) ] Didn't have meaningful value yet, don't need to load it.
                     return symbol2reg[symbol];
                 if (symbol->addr == -1) {
                     addCode(format("la", "$a0", symbol->name));

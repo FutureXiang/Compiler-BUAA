@@ -28,15 +28,17 @@ void Interpreter::run() {
 void Interpreter::VarArrStr_Def() {
     code = qcodes.pop();
     std::string identifier = code.target->name;
-    name2symbol[identifier] = new UniqueSymbol(identifier, -1);
     
     if (code.first != nullptr) {                                    // VAR, array, 10
         int size = ((OperandInstant *)code.first)->value;
+        name2symbol[identifier] = new UniqueSymbol(identifier, true);
         addCode(dataLabel(identifier, size).toString());
     } else if (code.target->is_string) {                            // VAR, "this is a string"
         std::string content = ((OperandString *)code.target)->value;
+        name2symbol[identifier] = new UniqueSymbol(identifier);
         addCode(dataLabel(identifier, content).toString());
     } else {                                                        // VAR, aword
+        name2symbol[identifier] = new UniqueSymbol(identifier);
         addCode(dataLabel(identifier).toString());
     }
 }
