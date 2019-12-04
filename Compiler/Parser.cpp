@@ -232,11 +232,9 @@ void Parser::returnStatement() {
         
         /* QUAD-CODE: MOVE RETURN-VALUE TO v0, THEN RETURN */
         qcodes.addCode(Quadruple(MV, (Operand *)&qcodes.v0Symbol, temp));
-        qcodes.addCode(Quadruple(RET));
-        
         mustBeThisToken(rBracket);
     }
-    /* QUAD-CODE: DIRECTLY RETURN */
+    /* QUAD-CODE: RETURN */
     qcodes.addCode(Quadruple(RET));
     if (type != expected_return) {
         if (expected_return == voidType)
@@ -962,6 +960,6 @@ Parser::Parser(std::set<std::pair<int, std::string> > &mess, PeekQueue<Token> da
     /* QUAD-CODE: .asciiz "\n" */
     qcodes.getQCodes()->insert(qcodes.getQCodes()->begin(), Quadruple(VAR, (Operand *)&qcodes.slashN));
     
-    for(auto qcode: *qcodes.getQCodes())
-        std::cerr << qcode.toString() << std::endl;
+//    for(auto qcode: *qcodes.getQCodes())
+//        std::cerr << qcode.toString() << std::endl;
 }

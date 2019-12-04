@@ -170,7 +170,7 @@ public:
     }
     void releaseAllGlobals() {
         // Locals are not saved back. We don't need them anymore.
-        addCode("\n# RELEASE GLOBAL REGS START ----------");
+//        addCode("\n# RELEASE GLOBAL REGS START ----------");
         for (auto pair : symbol2reg) {
             int reg = pair.second;
             UniqueSymbol *symbol = pair.first;
@@ -180,13 +180,13 @@ public:
             }
             symbol->inited = true;
         }
-        addCode("# RELEASE GLOBAL REGS  END  ----------\n");
+//        addCode("# RELEASE GLOBAL REGS  END  ----------\n");
         symbol2reg.clear();
         reg_free = reg_avail;
         reg_used = std::vector<int>();
     }
-    void releaseAllBeforeLastCode(bool spMinusedFour) {
-        addCode("\n# RELEASE REGS START ----------"+code.toString(), -1);
+    void releaseAllBeforeLastCode(bool is_caller_saving_env) {
+//        addCode("\n# RELEASE REGS START ----------"+code.toString(), -1);
         for (auto pair : symbol2reg) {
             int reg = pair.second;
             UniqueSymbol *symbol = pair.first;
@@ -195,12 +195,13 @@ public:
                 if (symbol->addr == -1) {
                     addCode(format("la", "$a0", symbol->name), -1);
                     addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0), -1);
-                } else
-                    addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr + (spMinusedFour ? 4 : 0)), -1); // @ jal: $sp has EARLY -4ed for saving $ra !!!
+                } else if (is_caller_saving_env || (!is_caller_saving_env && symbol->name[0] != 't'))
+                    // DON'T NEED TO SAVE temp AT THE END OF BLOCKs [BUT @ jal everything MUST be saved]
+                    addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr + (is_caller_saving_env ? 4 : 0)), -1); // @ jal: $sp has EARLY -4ed for saving $ra !!!
                 symbol->inited = true;
             }
         }
-        addCode("# RELEASE REGS  END  ----------\n", -1);
+//        addCode("# RELEASE REGS  END  ----------\n", -1);
         symbol2reg.clear();
         reg_free = reg_avail;
         reg_used = std::vector<int>();

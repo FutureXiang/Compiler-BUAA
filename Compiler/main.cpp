@@ -20,7 +20,7 @@ using namespace std;
 PeekQueue<char> readIn() {
     freopen("testfile.txt", "r", stdin);
     freopen("mips.txt", "w", stdout);
-    freopen("quad.txt", "w", stderr);
+//    freopen("quad.txt", "w", stderr);
     char character;
     
     PeekQueue<char> data = PeekQueue<char>();
@@ -41,8 +41,8 @@ int main() {
     
     std::vector<Quadruple> *qcodes_total = parser.getQcodes();
     std::vector<std::pair<int, int> > blocks_range = Divider(qcodes_total);
-    for (std::pair<int, int> s_e: blocks_range)
-        cerr << s_e.first << ", " << s_e.second << endl;
+//    for (std::pair<int, int> s_e: blocks_range)
+//        cerr << s_e.first << ", " << s_e.second << endl;
     Interpreter convert = Interpreter(qcodes_total, blocks_range);
     for (std::string mips: convert.getMIPS())
         cout << mips << endl;

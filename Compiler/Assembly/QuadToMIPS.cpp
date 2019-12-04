@@ -91,10 +91,10 @@ void Interpreter::Function_Def() {
         }
     }
     addCode(format("subu", "$sp", "$sp", std::to_string(sp_words * 4)));
-    std::cerr << "==========" << std::endl;
+//    std::cerr << "==========" << std::endl;
     for (auto identifier: need_spaces) {
         name2symbol[identifier]->addr = (sp_words - sp_pre_counter[identifier])*4;
-        std::cerr << identifier << " -> " << name2symbol[identifier]->addr << std::endl;
+//        std::cerr << identifier << " -> " << name2symbol[identifier]->addr << std::endl;
     }
     addCode("\n");
     
@@ -115,9 +115,12 @@ void Interpreter::Function_Def() {
             addCode(format((code.op == BEZ) ? "beqz" : "bnez", code.target->name, code.first->toString()));
         else if (code.op == LI || code.op == MV) {
             if (code.op == MV && code.target->name[0] == 'a') {          // MV, a0, 5 ----> SAVE ARGS a_x TO -4(x+1)($sp)
-                Function_Call();
+                Function_Call();                // Call Functions with args
             } else
                 addCode(format((code.first->is_instant) ? "li" : "move", code.target->name, code.first->toString()));
+        }
+        else if (code.op == CALL) {
+            Function_Call();                    // Call Functions without args
         }
         else if (code.op == LARR) {
             std::string offset = code.second->toString();
@@ -176,22 +179,22 @@ void Interpreter::Function_Def() {
 
 
 void Interpreter::save_regs() {
-    addCode("\n# SAVE ENVS START ----------");
+//    addCode("\n# SAVE ENVS START ----------");
     addCode(format("subu", "$sp", "$sp", "4"));
     addCode(LwSw('s', "$ra", "$sp", 0));
-    addCode("# SAVE ENVS  END  ----------\n");
+//    addCode("# SAVE ENVS  END  ----------\n");
 }
 
 void Interpreter::load_regs() {
-    addCode("\n# LOAD ENVS START ----------");
+//    addCode("\n# LOAD ENVS START ----------");
     addCode(LwSw('l', "$ra", "$sp", 0));
     addCode(format("addu", "$sp", "$sp", "4"));
-    addCode("# LOAD ENVS  END  ----------\n");
+//    addCode("# LOAD ENVS  END  ----------\n");
 }
 
 void Interpreter::Function_Call() {
     save_regs();
-    addCode("# SAVE ARGS START ----------");
+//    addCode("# SAVE ARGS START ----------");
     while (code.op != CALL) {
         int offset = (std::stoi(code.target->name.substr(1)) + 1) * -4;
         // 可以直接保存，由Parser::valueArgList() 保证这里没有计算了。
@@ -204,10 +207,10 @@ void Interpreter::Function_Call() {
 //        std::cerr << code.toString() << std::endl;
         replaceSymbolToRegs();  // ALWAYS AFTER qcode.pop()!!!
     }
-    addCode("# SAVE ARGS  END  ----------");
+//    addCode("# SAVE ARGS  END  ----------");
     
     addCode(format("jal", code.target->toString()));
-    releaseAllBeforeLastCode(true);
+    releaseAllBeforeLastCode(true);         // SAVING "ENVS" @ jal
     addCode("\n");
     load_regs();
 }
