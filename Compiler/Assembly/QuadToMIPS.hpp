@@ -39,6 +39,8 @@ public:
 
 class Interpreter {
     PeekQueue<Quadruple> qcodes = PeekQueue<Quadruple>();
+    std::vector<std::pair<int, int> > blocks;
+    std::set<int> end_indexes;
     std::vector<std::string> mcodes;
     
     std::map<std::string, UniqueSymbol*> name2symbol;   // string name -> UniqueSymbol *symbol -> int addr
@@ -50,7 +52,11 @@ class Interpreter {
     Quadruple code;                                     // ONGOING qcode
 
 public:
-    Interpreter(std::vector<Quadruple> *qs) {
+    Interpreter(std::vector<Quadruple> *qs, std::vector<std::pair<int, int> > &block_start_ends) {
+        blocks = block_start_ends;
+        for (std::pair<int, int> s_e: blocks) {
+            end_indexes.insert(s_e.second);
+        }
         for (Quadruple qcode: *qs)
             qcodes.add(qcode);
         reg_free = reg_avail;
@@ -64,7 +70,12 @@ public:
     
     void addCode(std::string code) {
         mcodes.push_back(code);
-        std::cout << code << std::endl;
+    }
+    void addCode(std::string code, int offset) {
+        mcodes.insert(mcodes.end()+offset, code);
+    }
+    std::vector<std::string> getMIPS() {
+        return mcodes;
     }
     
     void save_regs();   // CALL-ER SAVE REGS
@@ -159,6 +170,7 @@ public:
     }
     void releaseAllGlobals() {
         // Locals are not saved back. We don't need them anymore.
+        addCode("\n# RELEASE GLOBAL REGS START ----------");
         for (auto pair : symbol2reg) {
             int reg = pair.second;
             UniqueSymbol *symbol = pair.first;
@@ -168,29 +180,37 @@ public:
             }
             symbol->inited = true;
         }
+        addCode("# RELEASE GLOBAL REGS  END  ----------\n");
         symbol2reg.clear();
         reg_free = reg_avail;
         reg_used = std::vector<int>();
     }
-    void releaseAll() {
-        addCode("\n# RELEASE REGS START ----------");
+    void releaseAllBeforeLastCode(bool spMinusedFour) {
+        addCode("\n# RELEASE REGS START ----------"+code.toString(), -1);
         for (auto pair : symbol2reg) {
             int reg = pair.second;
             UniqueSymbol *symbol = pair.first;
             if (!symbol->is_array) {
                 // variable -> value = $x   [SAVE var value to .DATA / STACK]
                 if (symbol->addr == -1) {
-                    addCode(format("la", "$a0", symbol->name));
-                    addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0));
+                    addCode(format("la", "$a0", symbol->name), -1);
+                    addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0), -1);
                 } else
-                    addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr + 4)); // $sp has EARLY -4ed for saving $ra !!!
+                    addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr + (spMinusedFour ? 4 : 0)), -1); // @ jal: $sp has EARLY -4ed for saving $ra !!!
                 symbol->inited = true;
             }
         }
-        addCode("\n# RELEASE REGS  END  ----------");
+        addCode("# RELEASE REGS  END  ----------\n", -1);
         symbol2reg.clear();
         reg_free = reg_avail;
         reg_used = std::vector<int>();
+    }
+    bool isEndOfBlock(int index) {
+        // LABEL, GOTO, Branch
+        return end_indexes.count(index) != 0;
+    }
+    bool isGoingToFuncEndOrCalling() {
+        return code.op == RET || code.op == CALL;
     }
 };
 

@@ -376,15 +376,33 @@ void Parser::loopStatement() {
     if (data.peek().getType() == whileKey) {                                        //  while '('＜条件＞')'＜语句＞
         printPop();
         mustBeThisToken(lBracket);
-        condition();
+        
+        Operand *boolean_calc_label = new OperandLabel(qcodes.allocLabel());
+        qcodes.addCode(Quadruple(LABEL, boolean_calc_label));
+        Operand *end_label = new OperandLabel(qcodes.allocLabel());
+        
+        Operand *condition_result = nullptr;
+        condition(condition_result);
+        qcodes.addCode(Quadruple(BEZ, condition_result, end_label));
+        
         mustBeThisToken(rBracket);
         statement();
+        qcodes.addCode(Quadruple(GOTO, boolean_calc_label));
+        qcodes.addCode(Quadruple(LABEL, end_label));
     } else if (data.peek().getType() == doKey) {                                    // do＜语句＞while '('＜条件＞')'
         printPop();
+        
+        Operand *start_label = new OperandLabel(qcodes.allocLabel());
+        qcodes.addCode(Quadruple(LABEL, start_label));
+        
         statement();
         mustBeThisToken(whileKey);
         mustBeThisToken(lBracket);
-        condition();
+        
+        Operand *condition_result = nullptr;
+        condition(condition_result);
+        qcodes.addCode(Quadruple(BNZ, condition_result, start_label));
+        
         mustBeThisToken(rBracket);
     } else {
         mustBeThisToken(forKey);                                                    // for'(' ＜标识符＞＝＜表达式＞;＜条件＞; ＜标识符＞＝＜标识符＞(+|-)＜步长＞ ')'＜语句＞
@@ -393,10 +411,19 @@ void Parser::loopStatement() {
         if (!table.containsByName(identifier.getText()))
             error(id_nodef);
         mustBeThisToken(assign);
+        
+        Operand *sym_operand = qcodes.getOperandSymbol(table.getSymbolByName(identifier.getText()));
         Operand *temp = nullptr;
         expr(temp);
+        qcodes.addCode(Quadruple(MV, sym_operand, temp));
         mustBeThisToken(semi);
-        condition();
+        
+        Operand *boolean_calc_label = new OperandLabel(qcodes.allocLabel());
+        qcodes.addCode(Quadruple(LABEL, boolean_calc_label));
+        Operand *end_label = new OperandLabel(qcodes.allocLabel());
+        Operand *condition_result = nullptr;
+        condition(condition_result);
+        qcodes.addCode(Quadruple(BEZ, condition_result, end_label));
         mustBeThisToken(semi);
         
         Token identifier2 = mustBeThisToken(name);
@@ -406,32 +433,74 @@ void Parser::loopStatement() {
         Token identifier3 = mustBeThisToken(name);
         if (!table.containsByName(identifier3.getText()))
             error(id_nodef);
+
+        Quadruple stepping;
+        
         if (data.peek().getType() == pluss || data.peek().getType() == minuss) {
             Token plus_minus = printPop();
             Token step = mustBeThisToken(intConst);
             mark("<无符号整数>");
             mark("<步长>");
+            
+            Operand *sym_operand2 = qcodes.getOperandSymbol(table.getSymbolByName(identifier2.getText()));
+            Operand *sym_operand3 = qcodes.getOperandSymbol(table.getSymbolByName(identifier3.getText()));
+            Operand *step_instant = new OperandInstant(std::stoi(step.getText()));
+            if (plus_minus.getType() == pluss) {
+                stepping = Quadruple(ADD, sym_operand3, sym_operand2, step_instant);
+            } else {
+                stepping = Quadruple(SUB, sym_operand3, sym_operand2, step_instant);
+            }
         } else {
 //            error(__othererror__);
         }
         mustBeThisToken(rBracket);
         statement();
+
+        qcodes.addCode(stepping);
+        qcodes.addCode(Quadruple(GOTO, boolean_calc_label));
+        qcodes.addCode(Quadruple(LABEL, end_label));
     }
     mark("<循环语句>");
 }
 
-void Parser::condition() {
-    Operand *temp = nullptr;
-    ExprType first = expr(temp);                                                        // ＜表达式＞
+void Parser::condition(Operand *&condition_result) {
+    Operand *first_operand = nullptr;
+    ExprType first = expr(first_operand);                                           // ＜表达式＞
     TokenType nextType = data.peek().getType();
     if (nextType == lesss || nextType == leq || nextType == great || nextType == geq || nextType == neq || nextType == equalto) {
         Token relationship = printPop();                                            // ＜表达式＞＜关系运算符＞＜表达式＞
-        ExprType second = expr(temp);
+        Operand *second_operand = nullptr;
+        ExprType second = expr(second_operand);
         if (first != intType || second != intType)
             error(cond_invalid);
+        condition_result = qcodes.allocTemp();
+        switch (nextType) {
+            case lesss:
+                qcodes.addCode(Quadruple(SLT, condition_result, first_operand, second_operand));
+                break;
+            case leq:
+                qcodes.addCode(Quadruple(SLEQ, condition_result, first_operand, second_operand));
+                break;
+            case great:
+                qcodes.addCode(Quadruple(SGT, condition_result, first_operand, second_operand));
+                break;
+            case geq:
+                qcodes.addCode(Quadruple(SGEQ, condition_result, first_operand, second_operand));
+                break;
+            case neq:
+                qcodes.addCode(Quadruple(SNE, condition_result, first_operand, second_operand));
+                break;
+            case equalto:
+                qcodes.addCode(Quadruple(SEQ, condition_result, first_operand, second_operand));
+                break;
+            default:
+                break;
+        }
+        
     } else {
         if (first != intType)
             error(cond_invalid);
+        condition_result = first_operand;
     }
     mark("<条件>");
 }
@@ -439,13 +508,27 @@ void Parser::condition() {
 void Parser::ifStatement() {
     mustBeThisToken(ifKey);                                                         // if '('＜条件＞')'＜语句＞
     mustBeThisToken(lBracket);
-    condition();
+    
+    Operand *condition_result = nullptr;
+    condition(condition_result);
+    
     mustBeThisToken(rBracket);
+    
+    Operand *condition_false_label = new OperandLabel(qcodes.allocLabel());
+    qcodes.addCode(Quadruple(BEZ, condition_result, condition_false_label));
+    
     statement();
     if (data.peek().getType() == elseKey) {                                         // [else＜语句＞]
+        Operand *end_label = new OperandLabel(qcodes.allocLabel());
+        qcodes.addCode(Quadruple(GOTO, end_label));
+        qcodes.addCode(Quadruple(LABEL, condition_false_label));
         printPop();
         statement();
+        qcodes.addCode(Quadruple(LABEL, end_label));
+    } else {
+        qcodes.addCode(Quadruple(LABEL, condition_false_label));
     }
+    
     mark("<条件语句>");
 }
 

@@ -15,6 +15,7 @@ template <class T>
 class PeekQueue {
 private:
     std::deque<T> queue;
+    int poped_index = -1;
 public:
     PeekQueue();
     void add(T in);
@@ -23,6 +24,7 @@ public:
     T pop();
     bool empty();
     int size();
+    int last_poped_index();
 };
 
 #endif /* PeekQueue_hpp */

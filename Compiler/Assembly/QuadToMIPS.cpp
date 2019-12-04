@@ -50,7 +50,7 @@ void Interpreter::Function_Def() {
     std::vector<std::string> need_spaces = std::vector<std::string>();
     std::map<std::string, int> sp_pre_counter = std::map<std::string, int>();
     int sp_words = 0;
-    for (int i = 1; i <= qcodes.size() && qcodes.peek(i).op != LABEL; ++i) {
+    for (int i = 1; i <= qcodes.size() && !(qcodes.peek(i).op == LABEL && qcodes.peek(i).target->toString()[0] == '_'); ++i) {
         Quadruple code = qcodes.peek(i);
 
         if (code.op == PARAM || code.op == VAR) {                   // PARAM, VAR, VAR[]
@@ -99,7 +99,7 @@ void Interpreter::Function_Def() {
     addCode("\n");
     
     // WE CAN USE:  "lw  $x,    name2symbol[x]->addr ($sp)" TO FETCH ARGs + VARs + TXs NOW !!!!
-    while (!qcodes.empty() && qcodes.peek().op != LABEL) {
+    while (!qcodes.empty() && !(qcodes.peek().op == LABEL && qcodes.peek().target->toString()[0] == '_')) {
         code = qcodes.pop();
 //        std::cerr << code.toString() << std::endl;
 
@@ -112,7 +112,7 @@ void Interpreter::Function_Def() {
         else if (code.op == GOTO)
             addCode(format("j", code.target->toString()));
         else if (code.op == BEZ || code.op == BNZ)
-            addCode(format((code.op == BEZ) ? "beqz" : "bnez", code.target->toString()));
+            addCode(format((code.op == BEZ) ? "beqz" : "bnez", code.target->name, code.first->toString()));
         else if (code.op == LI || code.op == MV) {
             if (code.op == MV && code.target->name[0] == 'a') {          // MV, a0, 5 ----> SAVE ARGS a_x TO -4(x+1)($sp)
                 Function_Call();
@@ -152,6 +152,13 @@ void Interpreter::Function_Def() {
             addCode(format("j", scope_name+"END"));
         } else
             addCode(ReadWrite(code));
+        
+        if (isEndOfBlock(qcodes.last_poped_index())) {
+            // MUST BE "j label" / "branch $x, label" / "label :"
+            if (!isGoingToFuncEndOrCalling())
+                releaseAllBeforeLastCode(false);
+            // "jal" / "jr $ra" ALREADY handled by FunctionCall()
+        }
     }
     if (scope_name != "__main__") {
         for (auto identifier: need_spaces)
@@ -198,8 +205,9 @@ void Interpreter::Function_Call() {
         replaceSymbolToRegs();  // ALWAYS AFTER qcode.pop()!!!
     }
     addCode("# SAVE ARGS  END  ----------");
-    releaseAll();
+    
     addCode(format("jal", code.target->toString()));
+    releaseAllBeforeLastCode(true);
     addCode("\n");
     load_regs();
 }

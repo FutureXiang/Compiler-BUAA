@@ -13,6 +13,7 @@
 #include "Tokenize/Tokenizer.hpp"
 #include "Parser.hpp"
 #include "Assembly/QuadToMIPS.hpp"
+#include "Quadruple/BlocksDivide.hpp"
 
 using namespace std;
 
@@ -38,7 +39,12 @@ int main() {
 //    for(auto message: tokenizer.errorMessages)
 //        cerr << message.first << " " << message.second << endl;
     
-    Interpreter convert = Interpreter(parser.getQcodes());
-    
+    std::vector<Quadruple> *qcodes_total = parser.getQcodes();
+    std::vector<std::pair<int, int> > blocks_range = Divider(qcodes_total);
+    for (std::pair<int, int> s_e: blocks_range)
+        cerr << s_e.first << ", " << s_e.second << endl;
+    Interpreter convert = Interpreter(qcodes_total, blocks_range);
+    for (std::string mips: convert.getMIPS())
+        cout << mips << endl;
     return 0;
 }

@@ -198,7 +198,7 @@ std::string ArithComp(Quadruple qcode) {
                     return format("div", z, x, y);
                     break;
                 case SLT:       // sge  t0, t1, -2;     subu t0, 1, t0
-                    return format("sge", z, x, y) + "\n" + format("subu", z, "1", z);
+                    return format("sge", z, x, y) + "\n" + format("subu", z, z, "1") + "\n" + format("neg", z, z);
                     break;
                 case SLEQ:
                     return format("sle", z, x, y);

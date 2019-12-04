@@ -40,7 +40,7 @@ private:
     void voidCaller(Token identifier, bool check_argmatch);
     void nonvoidCaller(Token identifier);
     void loopStatement();
-    void condition();
+    void condition(Operand *&condition_result);
     void ifStatement();
     void statement();
     void statementS();

@@ -26,6 +26,7 @@ template <class T>
 T PeekQueue<T>::pop() {
     T front = queue.front();
     queue.pop_front();
+    poped_index++;
     return front;
 }
 
@@ -42,4 +43,9 @@ T PeekQueue<T>::peek(int n) {
 template <class T>
 int PeekQueue<T>::size() {
     return queue.size();
+}
+
+template <class T>
+int PeekQueue<T>::last_poped_index() {
+    return poped_index;
 }
