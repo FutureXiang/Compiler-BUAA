@@ -184,8 +184,12 @@ Tokenizer::Tokenizer(std::set<std::pair<int, std::string> > &mess, PeekQueue<cha
                     }
                 } else if (now == '"') {
                     string content = "";
-                    while (!data.empty() && data.peek() != '"' && data.peek() != '\n')
-                        content += data.pop();
+                    while (!data.empty() && data.peek() != '"' && data.peek() != '\n') {
+                        char now = data.pop();
+                        content += now;
+                        if (now == '\\')
+                            content += '\\';
+                    }
                     if (data.empty())
                         error(lineCounter, token_invalid);
                     else if (data.peek() == '\n') {

@@ -236,6 +236,8 @@ void Parser::returnStatement() {
         
         mustBeThisToken(rBracket);
     }
+    /* QUAD-CODE: DIRECTLY RETURN */
+    qcodes.addCode(Quadruple(RET));
     if (type != expected_return) {
         if (expected_return == voidType)
             error(void_misret);
@@ -578,6 +580,7 @@ void Parser::statement() {
                         voidCaller(identifier, true);
                     else
                         nonvoidCaller(identifier);
+                    qcodes.addCode(Quadruple(CALL, new OperandLabel("__"+identifier.getText()+"__")));
                 }
                 mustBeThisToken(semi);
             }
