@@ -159,7 +159,7 @@ void Interpreter::Function_Def() {
         if (isEndOfBlock(qcodes.last_poped_index())) {
             // MUST BE "j label" / "branch $x, label" / "label :"
             if (!isGoingToFuncEndOrCalling())
-                releaseAllBeforeLastCode(false);
+                releaseAll(false, -1);                      // add Regs Release BEFORE THIS CODE (branch may still need regs)
             // "jal" / "jr $ra" ALREADY handled by FunctionCall()
         }
     }
@@ -172,6 +172,7 @@ void Interpreter::Function_Def() {
         addCode(format("addu", "$sp", "$sp", std::to_string(sp_words * 4)));
         addCode(format("jr", "$ra"));
     } else {
+        addCode(scope_name+"END:");
         addCode(format("li", "$v0", "10"));
         addCode("syscall");
     }
@@ -180,8 +181,7 @@ void Interpreter::Function_Def() {
 
 void Interpreter::save_regs() {
 //    addCode("\n# SAVE ENVS START ----------");
-    addCode(format("subu", "$sp", "$sp", "4"));
-    addCode(LwSw('s', "$ra", "$sp", 0));
+    addCode(LwSw('s', "$ra", "$sp", -4));                                       // $sp -= 4 AT THE END [AFFECT sw $ra, 0($sp) -> sw $ra, -4($sp)]
 //    addCode("# SAVE ENVS  END  ----------\n");
 }
 
@@ -196,8 +196,8 @@ void Interpreter::Function_Call() {
     save_regs();
 //    addCode("# SAVE ARGS START ----------");
     while (code.op != CALL) {
-        int offset = (std::stoi(code.target->name.substr(1)) + 1) * -4;
-        // 可以直接保存，由Parser::valueArgList() 保证这里没有计算了。
+        int offset = (std::stoi(code.target->name.substr(1)) + 1) * -4 - 4;     // $sp -= 4 AT THE END [AFFECT sw $ai, -4i($sp) -> sw $ai, -4(i+1)($sp)]
+        // 可以直接保存，由Parser::valueArgList() 保证这里没有计算了。[但是可能存在加载]
         if (code.first->is_instant) {
             addCode(format("li", "$a0", code.first->toString()));
             addCode(LwSw('s', "$a0", "$sp", offset));
@@ -208,9 +208,9 @@ void Interpreter::Function_Call() {
         replaceSymbolToRegs();  // ALWAYS AFTER qcode.pop()!!!
     }
 //    addCode("# SAVE ARGS  END  ----------");
-    
+    releaseAll(true, 0);                                             // SAVING "ENVS"
+    addCode(format("subu", "$sp", "$sp", "4"));                                 // $sp -= 4 AT THE END [AFFECT release $regs -= 4]
     addCode(format("jal", code.target->toString()));
-    releaseAllBeforeLastCode(true);         // SAVING "ENVS" @ jal
     addCode("\n");
     load_regs();
 }

@@ -102,7 +102,7 @@ public:
 //            std::cout << symbol->name << " is_array:" << symbol->is_array << " addr:" << symbol->addr << std::endl;
             if (!symbol->is_array) {
                 // variable -> $x = value   [LOAD var value from .DATA / STACK]
-                if (scope_name == "__main__" && symbol->inited == false)            // [MUST IN __MAIN__!!! (PROGRAM STARTS FROM MAIN) ] Didn't have meaningful value yet, don't need to load it.
+                if (symbol->addr != -1 && symbol->inited == false)            // [MUST BE LOCAL VARS, NOT GLOBAL !!!] Didn't have meaningful value yet, don't need to load it.
                     return symbol2reg[symbol];
                 if (symbol->addr == -1) {
                     addCode(format("la", "$a0", symbol->name));
@@ -174,34 +174,36 @@ public:
         for (auto pair : symbol2reg) {
             int reg = pair.second;
             UniqueSymbol *symbol = pair.first;
-            if (symbol->addr == -1) {
-                addCode(format("la", "$a0", symbol->name));
-                addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0));
+            if (!symbol->is_array) {
+                if (symbol->addr == -1) {
+                    addCode(format("la", "$a0", symbol->name));
+                    addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0));
+                }
+                symbol->inited = true;
             }
-            symbol->inited = true;
         }
 //        addCode("# RELEASE GLOBAL REGS  END  ----------\n");
         symbol2reg.clear();
         reg_free = reg_avail;
         reg_used = std::vector<int>();
     }
-    void releaseAllBeforeLastCode(bool is_caller_saving_env) {
-//        addCode("\n# RELEASE REGS START ----------"+code.toString(), -1);
+    void releaseAll(bool is_caller_saving_env, int offset) {
+//        addCode("\n# RELEASE REGS START ----------"+code.toString(), offset);
         for (auto pair : symbol2reg) {
             int reg = pair.second;
             UniqueSymbol *symbol = pair.first;
             if (!symbol->is_array) {
                 // variable -> value = $x   [SAVE var value to .DATA / STACK]
                 if (symbol->addr == -1) {
-                    addCode(format("la", "$a0", symbol->name), -1);
-                    addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0), -1);
+                    addCode(format("la", "$a0", symbol->name), offset);
+                    addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0), offset);
                 } else if (is_caller_saving_env || (!is_caller_saving_env && symbol->name[0] != 't'))
                     // DON'T NEED TO SAVE temp AT THE END OF BLOCKs [BUT @ jal everything MUST be saved]
-                    addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr + (is_caller_saving_env ? 4 : 0)), -1); // @ jal: $sp has EARLY -4ed for saving $ra !!!
+                    addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr), offset);
                 symbol->inited = true;
             }
         }
-//        addCode("# RELEASE REGS  END  ----------\n", -1);
+//        addCode("# RELEASE REGS  END  ----------\n", offset);
         symbol2reg.clear();
         reg_free = reg_avail;
         reg_used = std::vector<int>();
