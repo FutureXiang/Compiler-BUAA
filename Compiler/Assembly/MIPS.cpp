@@ -103,6 +103,8 @@ std::string format(std::string op, std::string rd, std::string rs, std::string r
 }
 
 std::string Arith(Quadruple qcode) {
+    // DIV $x, $y, $z CAN CAUSE A BRANCH !!!!
+    // DIV $y, $z + MFLO $x RAISE NO EXCEPTION !!!!
     if (qcode.first->is_instant && qcode.second->is_instant) {                  // ADD, t0, -1, -2
         int x = ((OperandInstant *)qcode.first)->value;
         int y = ((OperandInstant *)qcode.second)->value;
@@ -140,7 +142,7 @@ std::string Arith(Quadruple qcode) {
                 return format("mul", z, y, std::to_string(x_value));
                 break;
             case DIV:       // li   a0, -1;        div  t0, a0, t1
-                return format("li", temp, std::to_string(x_value)) + "\n" + format("div", z, temp, y);
+                return format("li", temp, std::to_string(x_value)) + "\n" + format("div", temp, y) + "\n" + format("mflo", z);
                 break;
             default:
                 return "";
@@ -150,6 +152,7 @@ std::string Arith(Quadruple qcode) {
         std::string x = qcode.first->toString();
         int y_value = ((OperandInstant *)qcode.second)->value;
         std::string z = qcode.target->toString();
+        std::string temp = "$a0";
         switch (qcode.op) {
             case ADD:
                 return format("addiu", z, x, std::to_string(y_value));          // addiu: [-32768, 32767]->ONE instuction, others->THREE
@@ -161,7 +164,7 @@ std::string Arith(Quadruple qcode) {
                 return format("mul", z, x, std::to_string(y_value));
                 break;
             case DIV:
-                return format("div", z, x, std::to_string(y_value));
+                return format("li", temp, std::to_string(y_value)) + "\n" + format("div", x, temp) + "\n" + format("mflo", z);
                 break;
             default:
                 return "";
@@ -182,7 +185,7 @@ std::string Arith(Quadruple qcode) {
                 return format("mul", z, x, y);
                 break;
             case DIV:
-                return format("div", z, x, y);
+                return format("div", x, y) + "\n" + format("mflo", z);
                 break;
             default:
                 return "";
