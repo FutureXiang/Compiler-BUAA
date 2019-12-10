@@ -114,7 +114,7 @@ public:
                 if (symbol->addr == -1) {
                     addCode(format("la", "$"+std::to_string(symbol2reg[symbol]), symbol->name));
                 } else
-                    addCode(format("addu", "$"+std::to_string(symbol2reg[symbol]), "$sp", std::to_string(symbol->addr)));
+                    addCode(format("addiu", "$"+std::to_string(symbol2reg[symbol]), "$sp", std::to_string(symbol->addr)));
                 
             }
         }

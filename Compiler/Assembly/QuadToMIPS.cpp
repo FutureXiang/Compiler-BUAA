@@ -90,7 +90,7 @@ void Interpreter::Function_Def() {
             }
         }
     }
-    addCode(format("subu", "$sp", "$sp", std::to_string(sp_words * 4)));
+    addCode(format("addiu", "$sp", "$sp", std::to_string(-sp_words * 4)));
 //    std::cerr << "==========" << std::endl;
     for (auto identifier: need_spaces) {
         name2symbol[identifier]->addr = (sp_words - sp_pre_counter[identifier])*4;
@@ -169,7 +169,7 @@ void Interpreter::Function_Def() {
         addCode("\n");
         addCode(scope_name+"END:");
         releaseAllGlobals();
-        addCode(format("addu", "$sp", "$sp", std::to_string(sp_words * 4)));
+        addCode(format("addiu", "$sp", "$sp", std::to_string(sp_words * 4)));
         addCode(format("jr", "$ra"));
     } else {
         addCode(scope_name+"END:");
@@ -188,7 +188,7 @@ void Interpreter::save_regs() {
 void Interpreter::load_regs() {
 //    addCode("\n# LOAD ENVS START ----------");
     addCode(LwSw('l', "$ra", "$sp", 0));
-    addCode(format("addu", "$sp", "$sp", "4"));
+    addCode(format("addiu", "$sp", "$sp", "4"));
 //    addCode("# LOAD ENVS  END  ----------\n");
 }
 
@@ -209,7 +209,7 @@ void Interpreter::Function_Call() {
     }
 //    addCode("# SAVE ARGS  END  ----------");
     releaseAll(true, 0);                                             // SAVING "ENVS"
-    addCode(format("subu", "$sp", "$sp", "4"));                                 // $sp -= 4 AT THE END [AFFECT release $regs -= 4]
+    addCode(format("addiu", "$sp", "$sp", "-4"));                                 // $sp -= 4 AT THE END [AFFECT release $regs -= 4]
     addCode(format("jal", code.target->toString()));
     addCode("\n");
     load_regs();

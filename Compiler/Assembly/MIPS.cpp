@@ -103,7 +103,7 @@ std::string format(std::string op, std::string rd, std::string rs, std::string r
 }
 
 std::string Arith(Quadruple qcode) {
-    if (qcode.first->is_instant && qcode.second->is_instant) {              // ADD, t0, -1, -2
+    if (qcode.first->is_instant && qcode.second->is_instant) {                  // ADD, t0, -1, -2
         int x = ((OperandInstant *)qcode.first)->value;
         int y = ((OperandInstant *)qcode.second)->value;
         int res = 0;
@@ -124,29 +124,50 @@ std::string Arith(Quadruple qcode) {
                 break;
         }
         return format("li", qcode.target->name, std::to_string(res));
-    } else if (qcode.first->is_instant) {                                      // SUB, t0, -1, t1
-            std::string x = qcode.first->toString();
-            std::string y = qcode.second->toString();
-            std::string z = qcode.target->toString();
-            std::string temp = "$a0";
-            switch (qcode.op) {
-                case ADD:
-                    return format("addu", z, y, x);
-                    break;
-                case SUB:       // subu t0, t1, -1;    neg  t0, t0
-                    return format("subu", z, y, x) + "\n" + format("neg", z, z);
-                    break;
-                case MULT:
-                    return format("mul", z, y, x);
-                    break;
-                case DIV:       // li   a0, -1;        div  t0, a0, t1
-                    return format("li", temp, x) + "\n" + format("div", z, temp, y);
-                    break;
-                default:
-                    return "";
-                    break;
-            }
-    } else {                                                                // MULT, t2, t0, t1 / MULT, t2, t0, 5
+    } else if (qcode.first->is_instant) {                                       // SUB, t0, -1, t1
+        int x_value = ((OperandInstant *)qcode.first)->value;
+        std::string y = qcode.second->toString();
+        std::string z = qcode.target->toString();
+        std::string temp = "$a0";
+        switch (qcode.op) {
+            case ADD:
+                return format("addiu", z, y, std::to_string(x_value));
+                break;
+            case SUB:       // subu t0, t1, -1;    neg  t0, t0
+                return format("addiu", z, y, std::to_string(-x_value)) + "\n" + format("neg", z, z);
+                break;
+            case MULT:
+                return format("mul", z, y, std::to_string(x_value));
+                break;
+            case DIV:       // li   a0, -1;        div  t0, a0, t1
+                return format("li", temp, std::to_string(x_value)) + "\n" + format("div", z, temp, y);
+                break;
+            default:
+                return "";
+                break;
+        }
+    } else if (qcode.second->is_instant) {                                      // MULT, t2, t0, 5
+        std::string x = qcode.first->toString();
+        int y_value = ((OperandInstant *)qcode.second)->value;
+        std::string z = qcode.target->toString();
+        switch (qcode.op) {
+            case ADD:
+                return format("addiu", z, x, std::to_string(y_value));          // addiu: [-32768, 32767]->ONE instuction, others->THREE
+                break;
+            case SUB:
+                return format("addiu", z, x, std::to_string(-y_value));         // addiu: [-32768, 32767]->ONE instuction, others->THREE
+                break;
+            case MULT:
+                return format("mul", z, x, std::to_string(y_value));
+                break;
+            case DIV:
+                return format("div", z, x, std::to_string(y_value));
+                break;
+            default:
+                return "";
+                break;
+        }
+    } else {                                                                    // MULT, t2, t0, t1
         std::string x = qcode.first->toString();
         std::string y = qcode.second->toString();
         std::string z = qcode.target->toString();
