@@ -14,7 +14,7 @@ std::vector<std::pair<int, int> > Divider(std::vector<Quadruple> *qcodes) {
     int start = 0;
     for (int i = 0; i < qcodes->size(); ++i) {
         Operator op = (*qcodes)[i].op;
-        if (op == LABEL || (op >= GOTO && op <= BNZ)) {
+        if (op == LABEL || op == GOTO || (op >= BEQ && op <= BNEZ)) {
             // Label belongs to the PREVIOUS Block !!
             start_ends.push_back(std::make_pair(start, i));
             start = i + 1;

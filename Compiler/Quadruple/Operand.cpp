@@ -21,8 +21,6 @@ std::map<Operator, std::string> op2str = {
     {SNE, "SNE"},
     
     {GOTO, "GOTO"},
-    {BEZ, "BEZ"},
-    {BNZ, "BNZ"},
     
     {LI, "LI"},
     {MV, "MV"},
@@ -43,4 +41,13 @@ std::map<Operator, std::string> op2str = {
     {WRITE_INT, "WRITE_INT"},
     {WRITE_CHAR, "WRITE_CHAR"},
     {WRITE_STR, "WRITE_STR"},
+    
+    {BEQ, "BEQ"},
+    {BNE, "BNE"},
+    {BGT, "BGT"},
+    {BGE, "BGE"},
+    {BLT, "BLT"},
+    {BLE, "BLE"},
+    {BEQZ, "BEQZ"},
+    {BNEZ, "BNEZ"},
 };

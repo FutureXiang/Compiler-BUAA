@@ -66,7 +66,10 @@ std::string ReadWrite(Quadruple qcode) {
                 return format("move", "$a0", qcode.target->name) +"\n"+ format("li", "$v0", "11") + "\nsyscall";
             break;
         default:
-            return format("la", "$a0", qcode.target->name) +"\n"+ format("li", "$v0", "4") + "\nsyscall";
+            if (qcode.target->name == "newline")
+                return format("li", "$a0", "10") +"\n"+ format("li", "$v0", "11") + "\nsyscall";
+            else
+                return format("la", "$a0", qcode.target->name) +"\n"+ format("li", "$v0", "4") + "\nsyscall";
             break;
     }
 }
@@ -99,7 +102,7 @@ std::string format(std::string op, std::string rd, std::string rs, std::string r
     }
 }
 
-std::string ArithComp(Quadruple qcode) {
+std::string Arith(Quadruple qcode) {
     if (qcode.first->is_instant && qcode.second->is_instant) {              // ADD, t0, -1, -2
         int x = ((OperandInstant *)qcode.first)->value;
         int y = ((OperandInstant *)qcode.second)->value;
@@ -117,33 +120,14 @@ std::string ArithComp(Quadruple qcode) {
             case DIV:
                 res = x/y;
                 break;
-            case SLT:
-                res = x<y;
-                break;
-            case SLEQ:
-                res = x<=y;
-                break;
-            case SGT:
-                res = x>y;
-                break;
-            case SGEQ:
-                res = x>=y;
-                break;
-            case SEQ:
-                res = x==y;
-                break;
-            case SNE:
-                res = x!=y;
-                break;
             default:
                 break;
         }
         return format("li", qcode.target->name, std::to_string(res));
-    } else if (qcode.first->is_instant || qcode.second->is_instant) {
-        if (qcode.first->is_instant) {                                      // SUB, t0, -1, t1
-            std::string x = std::to_string(((OperandInstant *)qcode.first)->value);
-            std::string y = qcode.second->name;
-            std::string z = qcode.target->name;
+    } else if (qcode.first->is_instant) {                                      // SUB, t0, -1, t1
+            std::string x = qcode.first->toString();
+            std::string y = qcode.second->toString();
+            std::string z = qcode.target->toString();
             std::string temp = "$a0";
             switch (qcode.op) {
                 case ADD:
@@ -158,72 +142,14 @@ std::string ArithComp(Quadruple qcode) {
                 case DIV:       // li   a0, -1;        div  t0, a0, t1
                     return format("li", temp, x) + "\n" + format("div", z, temp, y);
                     break;
-                case SLT:       // sgt  t0, t1, -1
-                    return format("sgt", z, y, x);
-                    break;
-                case SLEQ:      // sge  t0, t1, -1
-                    return format("sge", z, y, x);
-                    break;
-                case SGT:       // li   a0, -1;        sgt  t0, a0, t1
-                    return format("li", temp, x) + "\n" + format("sgt", z, temp, y);
-                    break;
-                case SGEQ:      // li   a0, -1;        sge  t0, a0, t1
-                    return format("li", temp, x) + "\n" + format("sge", z, temp, y);
-                    break;
-                case SEQ:
-                    return format("seq", z, y, x);
-                    break;
-                case SNE:
-                    return format("sne", z, y, x);
-                    break;
                 default:
                     return "";
                     break;
             }
-        } else {                                                            // SUB, t0, t1, -2
-            std::string x = qcode.first->name;
-            std::string y = std::to_string(((OperandInstant *)qcode.second)->value);
-            std::string z = qcode.target->name;
-            switch (qcode.op) {
-                case ADD:
-                    return format("addu", z, x, y);
-                    break;
-                case SUB:
-                    return format("subu", z, x, y);
-                    break;
-                case MULT:
-                    return format("mul", z, x, y);
-                    break;
-                case DIV:
-                    return format("div", z, x, y);
-                    break;
-                case SLT:       // sge  t0, t1, -2;     subu t0, 1, t0
-                    return format("sge", z, x, y) + "\n" + format("subu", z, z, "1") + "\n" + format("neg", z, z);
-                    break;
-                case SLEQ:
-                    return format("sle", z, x, y);
-                    break;
-                case SGT:
-                    return format("sgt", z, x, y);
-                    break;
-                case SGEQ:
-                    return format("sge", z, x, y);
-                    break;
-                case SEQ:
-                    return format("seq", z, x, y);
-                    break;
-                case SNE:
-                    return format("sne", z, x, y);
-                    break;
-                default:
-                    return "";
-                    break;
-            }
-        }
-    } else {                                                                // MULT, t2, t0, t1
-        std::string x = qcode.first->name;
-        std::string y = qcode.second->name;
-        std::string z = qcode.target->name;
+    } else {                                                                // MULT, t2, t0, t1 / MULT, t2, t0, 5
+        std::string x = qcode.first->toString();
+        std::string y = qcode.second->toString();
+        std::string z = qcode.target->toString();
         switch (qcode.op) {
             case ADD:
                 return format("addu", z, x, y);
@@ -237,27 +163,41 @@ std::string ArithComp(Quadruple qcode) {
             case DIV:
                 return format("div", z, x, y);
                 break;
-            case SLT:
-                return format("slt", z, x, y);
-                break;
-            case SLEQ:
-                return format("sle", z, x, y);
-                break;
-            case SGT:
-                return format("sgt", z, x, y);
-                break;
-            case SGEQ:
-                return format("sge", z, x, y);
-                break;
-            case SEQ:
-                return format("seq", z, x, y);
-                break;
-            case SNE:
-                return format("sne", z, x, y);
-                break;
             default:
                 return "";
                 break;
         }
     }
+}
+
+std::string CompBranch(Quadruple qcode) {
+    if (qcode.op == BEQZ) {
+        if (qcode.first->is_instant) {
+            if (((OperandInstant *)qcode.first)->value == 0)
+                return format("j", qcode.target->toString());
+            else
+                return "";
+        }
+        else
+            return format("beqz", qcode.first->toString(), qcode.target->toString());
+    }
+    if (qcode.op == BNEZ) {
+        if (qcode.first->is_instant) {
+            if (((OperandInstant *)qcode.first)->value != 0)
+                return format("j", qcode.target->toString());
+            else
+                return "";
+        }
+        else
+            return format("bnez", qcode.first->toString(), qcode.target->toString());
+    }
+    std::map<Operator, std::string> sixQop2sixMop = {
+        {BEQ, "beq"},
+        {BNE, "bne"},
+        {BGT, "bgt"},
+        {BGE, "bge"},
+        {BLT, "blt"},
+        {BLE, "ble"},
+    };
+    return format(sixQop2sixMop[qcode.op], qcode.first->toString(), qcode.second->toString(), qcode.target->toString());
 }

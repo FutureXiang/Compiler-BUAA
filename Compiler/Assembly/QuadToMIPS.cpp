@@ -107,12 +107,12 @@ void Interpreter::Function_Def() {
             continue;
         replaceSymbolToRegs();  // ALWAYS AFTER qcode.pop()!!!
 
-        if (code.op >= ADD && code.op <= SNE)
-            addCode(ArithComp(code));
+        if (code.op >= ADD && code.op <= DIV)
+            addCode(Arith(code));
+        else if (code.op >= BEQ && code.op <= BNEZ)
+            addCode(CompBranch(code));
         else if (code.op == GOTO)
             addCode(format("j", code.target->toString()));
-        else if (code.op == BEZ || code.op == BNZ)
-            addCode(format((code.op == BEZ) ? "beqz" : "bnez", code.target->name, code.first->toString()));
         else if (code.op == LI || code.op == MV) {
             if (code.op == MV && code.target->name[0] == 'a') {          // MV, a0, 5 ----> SAVE ARGS a_x TO -4(x+1)($sp)
                 Function_Call();                // Call Functions with args

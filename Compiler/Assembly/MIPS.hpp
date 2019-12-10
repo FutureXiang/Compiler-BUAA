@@ -38,7 +38,8 @@ public:
 };
 
 
-std::string ArithComp(Quadruple qcode);
+std::string Arith(Quadruple qcode);
+std::string CompBranch(Quadruple qcode);
 
 std::string ReadWrite(Quadruple qcode);
 

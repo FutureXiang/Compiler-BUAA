@@ -15,7 +15,7 @@
 enum Operator {
     ADD, SUB, MULT, DIV,                // Arithmetic ( (Temp)Symbol / InstantNum )
     SLT, SLEQ, SGT, SGEQ, SEQ, SNE,     // Comparison ( (Temp)Symbol / InstantNum )
-    GOTO, BEZ, BNZ,                     // Jump       ( Label )
+    GOTO,                               // Jump       ( Label )
     LI, MV,                             // Load       ( (Temp)Symbol / InstantNum )
     LARR, SARR,                         // L/S Array  ( Symbol, (Temp)Symbol / InstantNum )
     LABEL,                              // Set Label  ( None )
@@ -23,6 +23,8 @@ enum Operator {
     VAR, PARAM,                         // Var / VarArray Declare
     WRITE_INT, WRITE_CHAR, WRITE_STR,   // printf: string / expr(int/char)
     READ_INT, READ_CHAR,                // scanf: variable(int/char)
+    BEQ, BNE, BGT, BGE, BLT, BLE,       // Comparison+Branch
+    BEQZ, BNEZ,                         // Comparison+Branch
 };
 
 extern std::map<Operator, std::string> op2str;

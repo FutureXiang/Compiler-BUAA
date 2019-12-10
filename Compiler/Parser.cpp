@@ -8,6 +8,49 @@
 
 #include "Parser.hpp"
 #include "PeekQueue.cpp"
+#include <algorithm>
+
+// lesss, leq, great, geq, equalto, neq
+std::map<TokenType, TokenType> compSwap = {
+    {lesss, great},
+    {leq, geq},
+    {great, lesss},
+    {geq, leq},
+    {equalto, equalto},
+    {neq, neq},
+};
+
+std::map<TokenType, Operator> token2op = {
+    {lesss, SLT},
+    {leq, SLEQ},
+    {great, SGT},
+    {geq, SGEQ},
+    {equalto, SEQ},
+    {neq, SNE},
+};
+
+Operator condition2branch(Operator setCondition, bool jump_when_boolean) {
+    std::map<Operator, Operator> trueBranch = {
+        {SLT, BLT},
+        {SLEQ, BLE},
+        {SGT, BGT},
+        {SGEQ, BGE},
+        {SEQ, BEQ},
+        {SNE, BNE},
+    };
+    std::map<Operator, Operator> falseBranch = {
+        {SLT, BGE},
+        {SLEQ, BGT},
+        {SGT, BLE},
+        {SGEQ, BLT},
+        {SEQ, BNE},
+        {SNE, BEQ},
+    };
+    if (jump_when_boolean)
+        return trueBranch[setCondition];
+    else
+        return falseBranch[setCondition];
+}
 
 void Parser::error(Error e) {
     errorMessages.insert(std::make_pair(line, ErrorToString(e)));
@@ -381,9 +424,13 @@ void Parser::loopStatement() {
         qcodes.addCode(Quadruple(LABEL, boolean_calc_label));
         Operand *end_label = new OperandLabel(qcodes.allocLabel());
         
-        Operand *condition_result = nullptr;
-        condition(condition_result);
-        qcodes.addCode(Quadruple(BEZ, condition_result, end_label));
+        Operand *first = nullptr, *second = nullptr;
+        Operator comp = condition(first, second);
+        // result == false --> jump to end_label
+        if (second ==  nullptr)
+            qcodes.addCode(Quadruple(BEQZ, end_label, first));
+        else
+            qcodes.addCode(Quadruple(condition2branch(comp, false), end_label, first, second));
         
         mustBeThisToken(rBracket);
         statement();
@@ -399,9 +446,13 @@ void Parser::loopStatement() {
         mustBeThisToken(whileKey);
         mustBeThisToken(lBracket);
         
-        Operand *condition_result = nullptr;
-        condition(condition_result);
-        qcodes.addCode(Quadruple(BNZ, condition_result, start_label));
+        Operand *first = nullptr, *second = nullptr;
+        Operator comp = condition(first, second);
+        // result == true --> jump to start_label
+        if (second ==  nullptr)
+            qcodes.addCode(Quadruple(BNEZ, start_label, first));
+        else
+            qcodes.addCode(Quadruple(condition2branch(comp, true), start_label, first, second));
         
         mustBeThisToken(rBracket);
     } else {
@@ -421,9 +472,14 @@ void Parser::loopStatement() {
         Operand *boolean_calc_label = new OperandLabel(qcodes.allocLabel());
         qcodes.addCode(Quadruple(LABEL, boolean_calc_label));
         Operand *end_label = new OperandLabel(qcodes.allocLabel());
-        Operand *condition_result = nullptr;
-        condition(condition_result);
-        qcodes.addCode(Quadruple(BEZ, condition_result, end_label));
+        
+        Operand *first = nullptr, *second = nullptr;
+        Operator comp = condition(first, second);
+        // result == false --> jump to end_label
+        if (second ==  nullptr)
+            qcodes.addCode(Quadruple(BEQZ, end_label, first));
+        else
+            qcodes.addCode(Quadruple(condition2branch(comp, false), end_label, first, second));
         mustBeThisToken(semi);
         
         Token identifier2 = mustBeThisToken(name);
@@ -463,59 +519,75 @@ void Parser::loopStatement() {
     mark("<循环语句>");
 }
 
-void Parser::condition(Operand *&condition_result) {
-    Operand *first_operand = nullptr;
+Operator Parser::condition(Operand *&first_operand, Operand *&second_operand) {
+    Operator return_Operator = SNE;
+    
     ExprType first = expr(first_operand);                                           // ＜表达式＞
     TokenType nextType = data.peek().getType();
     if (nextType == lesss || nextType == leq || nextType == great || nextType == geq || nextType == neq || nextType == equalto) {
         Token relationship = printPop();                                            // ＜表达式＞＜关系运算符＞＜表达式＞
-        Operand *second_operand = nullptr;
         ExprType second = expr(second_operand);
         if (first != intType || second != intType)
             error(cond_invalid);
-        condition_result = qcodes.allocTemp();
-        switch (nextType) {
-            case lesss:
-                qcodes.addCode(Quadruple(SLT, condition_result, first_operand, second_operand));
-                break;
-            case leq:
-                qcodes.addCode(Quadruple(SLEQ, condition_result, first_operand, second_operand));
-                break;
-            case great:
-                qcodes.addCode(Quadruple(SGT, condition_result, first_operand, second_operand));
-                break;
-            case geq:
-                qcodes.addCode(Quadruple(SGEQ, condition_result, first_operand, second_operand));
-                break;
-            case neq:
-                qcodes.addCode(Quadruple(SNE, condition_result, first_operand, second_operand));
-                break;
-            case equalto:
-                qcodes.addCode(Quadruple(SEQ, condition_result, first_operand, second_operand));
-                break;
-            default:
-                break;
-        }
         
-    } else {
+        if (first_operand->is_instant && second_operand->is_instant) {  // BEQ label, 123, 321 --> SNE $0, 0
+            int firstValue = ((OperandInstant *)first_operand)->value;
+            int secondValue = ((OperandInstant *)second_operand)->value;
+            switch (nextType) {
+                case lesss:
+                    first_operand = new OperandInstant(firstValue < secondValue);
+                    break;
+                case leq:
+                    first_operand = new OperandInstant(firstValue <= secondValue);
+                    break;
+                case great:
+                    first_operand = new OperandInstant(firstValue > secondValue);
+                    break;
+                case geq:
+                    first_operand = new OperandInstant(firstValue >= secondValue);
+                    break;
+                case neq:
+                    first_operand = new OperandInstant(firstValue != secondValue);
+                    break;
+                case equalto:
+                    first_operand = new OperandInstant(firstValue == secondValue);
+                    break;
+                default:
+                    break;
+            }
+            second_operand = nullptr;
+        }
+        else {                                                          // 2 regs / 1 reg + 1 instant
+            if (first_operand->is_instant) {                            // BXX label, 123, t0  --> SYY t0, 123
+                std::swap(first_operand, second_operand);
+                nextType = compSwap[nextType];
+            }
+            return_Operator = token2op[nextType];
+        }
+    } else {                                                            // 1 reg / 1 instant
         if (first != intType)
             error(cond_invalid);
-        condition_result = first_operand;
+        second_operand = nullptr;
     }
     mark("<条件>");
+    return return_Operator;
 }
 
 void Parser::ifStatement() {
     mustBeThisToken(ifKey);                                                         // if '('＜条件＞')'＜语句＞
     mustBeThisToken(lBracket);
     
-    Operand *condition_result = nullptr;
-    condition(condition_result);
+    Operand *first = nullptr, *second = nullptr;
+    Operator comp = condition(first, second);
     
     mustBeThisToken(rBracket);
     
     Operand *condition_false_label = new OperandLabel(qcodes.allocLabel());
-    qcodes.addCode(Quadruple(BEZ, condition_result, condition_false_label));
+    // result == false --> jump to condition_false_label
+    if (second ==  nullptr)
+        qcodes.addCode(Quadruple(BEQZ, condition_false_label, first));
+    else
+        qcodes.addCode(Quadruple(condition2branch(comp, false), condition_false_label, first, second));
     
     statement();
     if (data.peek().getType() == elseKey) {                                         // [else＜语句＞]
@@ -956,9 +1028,6 @@ Parser::Parser(std::set<std::pair<int, std::string> > &mess, PeekQueue<Token> da
     this->table = SymbolTable();
     this->qcodes = QuadrupleList();
     program();
-    
-    /* QUAD-CODE: .asciiz "\n" */
-    qcodes.getQCodes()->insert(qcodes.getQCodes()->begin(), Quadruple(VAR, (Operand *)&qcodes.slashN));
     
 //    for(auto qcode: *qcodes.getQCodes())
 //        std::cerr << qcode.toString() << std::endl;

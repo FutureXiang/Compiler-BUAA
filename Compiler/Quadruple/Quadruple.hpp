@@ -26,9 +26,9 @@ public:
     Quadruple(Operator opt);
     // GOTO t;
     Quadruple(Operator opt, Operand *target);
-    // BEZ t, s;  BNZ t, s;  LI t, s;  MV t, s;
+    // LI t, s;  MV t, s;  BEQZ l, s;
     Quadruple(Operator opt, Operand *target, Operand *source);
-    // ADD t, f, s;  SLT t, f, s;  LARR t, s, i;
+    // ADD t, f, s;  SLT t, f, s;  LARR t, s, i;  BEQ l, f, s;
     Quadruple(Operator opt, Operand *target, Operand *first, Operand *second);
 
     std::string toString();

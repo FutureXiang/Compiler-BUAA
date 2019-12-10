@@ -20,6 +20,9 @@
 #include "Error.hpp"
 #include "Quadruple/Quadruple.hpp"
 
+extern std::map<TokenType, TokenType> compSwap;
+extern std::map<TokenType, Operator> token2op;
+
 class Parser {
 private:
     int line;
@@ -40,7 +43,7 @@ private:
     void voidCaller(Token identifier, bool check_argmatch);
     void nonvoidCaller(Token identifier);
     void loopStatement();
-    void condition(Operand *&condition_result);
+    Operator condition(Operand *&first, Operand *&second);
     void ifStatement();
     void statement();
     void statementS();
