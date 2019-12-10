@@ -152,7 +152,15 @@ void Interpreter::Function_Def() {
         } else if (code.op == LABEL)
             addCode(code.target->toString() + ":");
         else if (code.op == RET) {
-            addCode(format("j", scope_name+"END"));
+            if (scope_name != "__main__") {
+                addCode("\n");
+                releaseAllGlobals();
+                addCode(format("addiu", "$sp", "$sp", std::to_string(sp_words * 4)));
+                addCode(format("jr", "$ra"));
+            } else {
+                addCode(format("li", "$v0", "10"));
+                addCode("syscall");
+            }
         } else
             addCode(ReadWrite(code));
         
@@ -167,12 +175,10 @@ void Interpreter::Function_Def() {
         for (auto identifier: need_spaces)
             name2symbol.erase(identifier);
         addCode("\n");
-        addCode(scope_name+"END:");
         releaseAllGlobals();
         addCode(format("addiu", "$sp", "$sp", std::to_string(sp_words * 4)));
         addCode(format("jr", "$ra"));
     } else {
-        addCode(scope_name+"END:");
         addCode(format("li", "$v0", "10"));
         addCode("syscall");
     }
