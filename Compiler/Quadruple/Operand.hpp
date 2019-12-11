@@ -33,7 +33,7 @@ extern std::map<Operator, std::string> op2str;
 class Operand {
 public:
     std::string name;
-    bool is_instant = false, is_string = false;
+    bool is_instant = false, is_string = false, is_symbol = false;
     
     Operand() = default;
     virtual ~Operand() {};
@@ -56,10 +56,12 @@ public:
     OperandSymbol(std::string symbolName) {
         name = symbolName;
         is_temp = false;
+        is_symbol = true;
     }
     OperandSymbol(std::string symbolName, bool temp) {
         name = symbolName;
         is_temp = temp;
+        is_symbol = true;
     }
     std::string toString() override {
         return name;

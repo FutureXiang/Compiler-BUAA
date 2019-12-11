@@ -26,6 +26,7 @@ public:
     int addr = -1;      // -1 for global, non-negative for local ($sp + addr)
     bool is_array;
     bool inited = false;        // only ARGS, they ARE initialized !!!
+    bool dirty = false;         // Has it been modified since last lw?
     UniqueSymbol(std::string n, bool array) {
         name = n;
         is_array = array;
@@ -51,6 +52,8 @@ class Interpreter {
     std::string scope_name;
     Quadruple code;                                     // ONGOING qcode
 
+    const std::set<Operator> modify_operators{ADD, SUB, MULT, DIV, LI, MV, LARR, READ_INT, READ_CHAR};
+    
 public:
     Interpreter(std::vector<Quadruple> *qs, std::vector<std::pair<int, int> > &block_start_ends) {
         blocks = block_start_ends;
@@ -84,6 +87,8 @@ public:
     void replaceSymbolToRegs() {
         Operand *target = code.target, *first = code.first, *second = code.second;
         if (code.target != nullptr && name2symbol.count(code.target->toString())) {
+            if (modify_operators.count(code.op))
+                name2symbol[code.target->toString()]->dirty = true;
             target = new OperandSymbol("$"+std::to_string(regForThis(code.target->name)));
         }
         if (code.first != nullptr && name2symbol.count(code.first->toString())) {
@@ -162,6 +167,7 @@ public:
                     } else
                         addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr));
                     symbol->inited = true;
+                    symbol->dirty = false;
                 }
                 symbol2reg.erase(it);
                 break;
@@ -180,6 +186,7 @@ public:
                     addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0));
                 }
                 symbol->inited = true;
+                symbol->dirty = false;
             }
         }
 //        addCode("# RELEASE GLOBAL REGS  END  ----------\n");
@@ -197,10 +204,11 @@ public:
                 if (symbol->addr == -1) {
                     addCode(format("la", "$a0", symbol->name), offset);
                     addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0), offset);
-                } else if (is_caller_saving_env || (!is_caller_saving_env && symbol->name[0] != 't'))
-                    // DON'T NEED TO SAVE temp AT THE END OF BLOCKs [BUT @ jal everything MUST be saved]
+                } else if (symbol->dirty)
+                    // [INLINE --> SIDE EFFECT] NEED TO SAVE EVERYTHING DIRTY AT THE END OF BLOCKs
                     addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr), offset);
                 symbol->inited = true;
+                symbol->dirty = false;
             }
         }
 //        addCode("# RELEASE REGS  END  ----------\n", offset);

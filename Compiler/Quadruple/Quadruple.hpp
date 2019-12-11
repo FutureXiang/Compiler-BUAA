@@ -60,8 +60,11 @@ public:
         return &qcode;
     }
     
-    std::string now_scope_prefix = "_global_";
+    std::string now_scope_prefix = "_42global_";
     OperandSymbol *getOperandSymbol(std::shared_ptr<Symbol> symbol);
+    
+    std::map<std::string, std::vector<Quadruple> > get_inlineable_functions();
+    void inline_functions();
 };
 
 

@@ -1031,4 +1031,7 @@ Parser::Parser(std::set<std::pair<int, std::string> > &mess, PeekQueue<Token> da
     
 //    for(auto qcode: *qcodes.getQCodes())
 //        std::cerr << qcode.toString() << std::endl;
+    qcodes.inline_functions();
+//    for(auto qcode: *qcodes.getQCodes())
+//        std::cerr << qcode.toString() << std::endl;
 }
