@@ -65,6 +65,7 @@ public:
     
     std::map<std::string, std::vector<Quadruple> > get_inlineable_functions();
     void inline_functions();
+    void sortout_labels();
 };
 
 

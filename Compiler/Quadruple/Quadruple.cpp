@@ -209,3 +209,52 @@ std::map<std::string, std::vector<Quadruple> > QuadrupleList::get_inlineable_fun
 //        std::cerr << inlineable.first << std::endl;
     return inlineable_functions;
 }
+
+bool is_control_label(Quadruple q) {
+    return q.op == LABEL && q.target->toString().substr(0, 6) == "label_";
+}
+
+bool using_control_label(Quadruple q) {
+    return (q.op == GOTO || (q.op >= BEQ && q.op <= BNEZ)) && q.target->toString().substr(0, 6) == "label_";
+}
+
+void QuadrupleList::sortout_labels() {
+    std::map<std::string, std::string> labelDeleted;
+    std::map<std::string, int> label_using_count;
+    
+    // GOTO x;  GOTO x; Label x;
+    for (std::vector<Quadruple>::iterator it = qcode.begin(); it != qcode.end(); ++it) {
+        if (using_control_label(*it)) {
+            if (label_using_count.count(it->target->toString()) == 0)
+                label_using_count[it->target->toString()] = 1;
+            else
+                label_using_count[it->target->toString()]++;
+        }
+    }
+    for (std::vector<Quadruple>::iterator it = qcode.begin() + 1; it != qcode.end(); ++it) {
+        if (is_control_label(*it) && using_control_label(*(it-1))
+            && it->target->toString() == (it-1)->target->toString()) {
+            // ONLY USED BY it-1 --> delete them !
+            if (label_using_count[it->target->toString()] == 1)
+                it = qcode.erase(it-1, it+1) - 1;
+            else
+            // USED BY SEVERAL --> delete this jump !
+                it = qcode.erase(it-1) - 1;
+        }
+    }
+    
+    // Label x; Label y;
+    for (std::vector<Quadruple>::iterator it = qcode.begin() + 1; it != qcode.end(); ++it) {
+        if (is_control_label(*it) && is_control_label(*(it-1))) {
+            if (labelDeleted.count(it->target->toString()) == 0)
+                labelDeleted[it->target->toString()] = (it-1)->target->toString();
+            it = qcode.erase(it) - 1;
+        }
+    }
+    for (std::vector<Quadruple>::iterator it = qcode.begin(); it != qcode.end(); ++it) {
+        if (is_control_label(*it) || using_control_label(*it)) {
+            if (labelDeleted.count(it->target->toString()))
+                ((OperandLabel *)(it->target))->label = labelDeleted[it->target->toString()];
+        }
+    }
+}
