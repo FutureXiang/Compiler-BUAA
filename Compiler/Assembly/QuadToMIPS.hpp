@@ -52,7 +52,8 @@ class Interpreter {
     std::string scope_name;
     Quadruple code;                                     // ONGOING qcode
 
-    const std::set<Operator> modify_operators{ADD, SUB, MULT, DIV, LI, MV, LARR, READ_INT, READ_CHAR};
+    const std::set<Operator> modify_target_operators{ADD, SUB, MULT, DIV, LI, MV, LARR, READ_INT, READ_CHAR};
+    const std::set<Operator> ref_target_operators{SARR, WRITE_INT, WRITE_CHAR};
     
 public:
     Interpreter(std::vector<Quadruple> *qs, std::vector<std::pair<int, int> > &block_start_ends) {
@@ -86,28 +87,30 @@ public:
     
     void replaceSymbolToRegs() {
         Operand *target = code.target, *first = code.first, *second = code.second;
-        if (code.target != nullptr && name2symbol.count(code.target->toString())) {
-            if (modify_operators.count(code.op))
-                name2symbol[code.target->toString()]->dirty = true;
-            target = new OperandSymbol("$"+std::to_string(regForThis(code.target->name)));
-        }
         if (code.first != nullptr && name2symbol.count(code.first->toString())) {
-            first = new OperandSymbol("$"+std::to_string(regForThis(code.first->name)));
+            first = new OperandSymbol("$"+std::to_string(regForThis(code.first->name, true)));
         }
         if (code.second != nullptr && name2symbol.count(code.second->toString())) {
-            second = new OperandSymbol("$"+std::to_string(regForThis(code.second->name)));
+            second = new OperandSymbol("$"+std::to_string(regForThis(code.second->name, true)));
+        }
+        // FIRST ref(first, second) THEN assign(target)
+        if (code.target != nullptr && name2symbol.count(code.target->toString())) {
+            if (modify_target_operators.count(code.op))
+                name2symbol[code.target->toString()]->dirty = true;
+            // except for sw, other $target
+            target = new OperandSymbol("$"+std::to_string(regForThis(code.target->name, (ref_target_operators.count(code.op) ? true : false))));
         }
         code = Quadruple(code.op, target, first, second);
     }
     
-    int regForThis(std::string name) {
+    int regForThis(std::string name, bool refer) {
         UniqueSymbol* symbol = name2symbol[name];
         if (symbol2reg.count(symbol) == 0) {
             symbol2reg[symbol] = allocReg(symbol);
 //            std::cout << symbol->name << " is_array:" << symbol->is_array << " addr:" << symbol->addr << std::endl;
             if (!symbol->is_array) {
                 // variable -> $x = value   [LOAD var value from .DATA / STACK]
-                if (symbol->addr != -1 && symbol->inited == false)            // [MUST BE LOCAL VARS, NOT GLOBAL !!!] Didn't have meaningful value yet, don't need to load it.
+                if ((symbol->addr != -1 && symbol->inited == false) || (!refer))   // [MUST BE LOCAL VARS, NOT GLOBAL !!!] Didn't have meaningful value yet, don't need to load it.
                     return symbol2reg[symbol];
                 if (symbol->addr == -1) {
                     addCode(format("la", "$a0", symbol->name));
