@@ -69,7 +69,7 @@ Quadruple::Quadruple(Operator opt, Operand *target, Operand *first, Operand *sec
     this->second = second;
 }
 
-std::string Quadruple::toString() {
+std::string Quadruple::toString() const {
     std::string str = op2str[op];
     if (target != nullptr)
         str.append(", " + target->toString());
@@ -80,6 +80,10 @@ std::string Quadruple::toString() {
     return str;
 }
 
+bool operator < (const Quadruple &x, const Quadruple &y) {
+    return x.toString() < y.toString();
+}
+
 OperandSymbol* QuadrupleList::getOperandSymbol(std::shared_ptr<Symbol> symbol) {
     if (operandSymbolPool.count(symbol) == 0) {
         return operandSymbolPool[symbol] = new OperandSymbol(now_scope_prefix + symbol->getName());
@@ -88,10 +92,26 @@ OperandSymbol* QuadrupleList::getOperandSymbol(std::shared_ptr<Symbol> symbol) {
     }
 }
 
+bool is_function_label(Quadruple q) {
+    return q.op == LABEL && q.target->toString().substr(0, 2) == "__";
+}
+
+bool is_localvar(std::string s) {
+    return s[0] != 'a' && s[0] != '$' && s.substr(0, 3) != "_42";
+}
+
 void QuadrupleList::inline_functions() {
-    std::map<std::string, std::vector<Quadruple> > inlineable_functions = get_inlineable_functions();
+    std::map<std::string, std::vector<Quadruple> > inlineable_functions;
+    while ((inlineable_functions = get_inlineable_functions()).size() != 0) {
+        inline_functions_single(inlineable_functions);
+//        for (Quadruple q: qcode)
+//            std::cerr << q.toString() << std::endl;
+    }
+}
+
+void QuadrupleList::inline_functions_single(std::map<std::string, std::vector<Quadruple> > inlineable_functions) {
     std::vector<Quadruple> new_qcode;
-    std::map<std::string, std::set<std::string> > vars_for_each_function;
+    std::map<std::string, std::set<Quadruple> > vars_for_each_function;
     std::string scope_name = "_42global_";
     for (std::vector<Quadruple>::iterator it = qcode.begin(); it != qcode.end(); ++it) {
         if (it->op == LABEL && it->target->toString()[0]=='_')      // Only Function Labels can start with '_' !!
@@ -125,38 +145,45 @@ void QuadrupleList::inline_functions() {
             for (int i = 0; i < valueArgs.size(); ++i) {
                 // Params must be a "PARAM" as a local VAR.
                 Operand *funcArg = new OperandSymbol(inline_vars_head + func_codes[i].target->toString());
-                vars_for_each_function[scope_name].insert(funcArg->toString());
                 new_qcode.push_back(Quadruple(MV, funcArg, valueArgs[i]));
             }
             
             std::map<std::string, Operand*> label_mapping;
             
             for (Quadruple func_code: func_codes) {
-                if (func_code.op == PARAM || func_code.op == VAR)
+                if (func_code.op == PARAM || func_code.op == VAR) {
+                    Quadruple replaced = func_code;
+                    replaced.op = VAR;
+                    replaced.target = new OperandSymbol(inline_vars_head + replaced.target->toString());
+                    vars_for_each_function[scope_name].insert(replaced);
                     continue;
+                }
                 if (func_code.op == RET) {
                     new_qcode.push_back(Quadruple(GOTO, end_label));
                     continue;
                 }
                 if (func_code.op == MV && func_code.target->toString() == "$v0" && use_ret_value != caller) {   // instruction after caller is using $v0 @ MV, xx, $v0
                     Quadruple replaced = func_code;
-                    if (replaced.first->is_symbol && replaced.first->toString().substr(0, 3) != "_42")
+                    if (replaced.first->is_symbol && is_localvar(replaced.first->toString()))
                         replaced.first = new OperandSymbol(inline_vars_head + replaced.first->toString());
                     new_qcode.push_back(Quadruple(MV, use_ret_value->target, replaced.first));
                     continue;
                 }
                 Quadruple replaced = func_code;
-                if (replaced.target != nullptr && replaced.target->is_symbol && replaced.target->toString().substr(0, 3) != "_42") {
+                if (replaced.target != nullptr && replaced.target->is_symbol && is_localvar(replaced.target->toString())) {
                     replaced.target = new OperandSymbol(inline_vars_head + replaced.target->toString());
-                    vars_for_each_function[scope_name].insert(replaced.target->toString());
+                    if (func_code.target->isTemp())
+                        vars_for_each_function[scope_name].insert(Quadruple(VAR, replaced.target));
                 }
-                if (replaced.first != nullptr && replaced.first->is_symbol && replaced.first->toString().substr(0, 3) != "_42") {
+                if (replaced.first != nullptr && replaced.first->is_symbol && is_localvar(replaced.first->toString())) {
                     replaced.first = new OperandSymbol(inline_vars_head + replaced.first->toString());
-                    vars_for_each_function[scope_name].insert(replaced.first->toString());
+                    if (func_code.first->isTemp())
+                        vars_for_each_function[scope_name].insert(Quadruple(VAR, replaced.first));
                 }
-                if (replaced.second != nullptr && replaced.second->is_symbol && replaced.second->toString().substr(0, 3) != "_42") {
+                if (replaced.second != nullptr && replaced.second->is_symbol && is_localvar(replaced.second->toString())) {
                     replaced.second = new OperandSymbol(inline_vars_head + replaced.second->toString());
-                    vars_for_each_function[scope_name].insert(replaced.second->toString());
+                    if (func_code.second->isTemp())
+                        vars_for_each_function[scope_name].insert(Quadruple(VAR, replaced.second));
                 }
                 if (replaced.op == LABEL || replaced.op == GOTO || (replaced.op >= BEQ && replaced.op <= BNEZ)) {
                     std::string label = replaced.target->toString();
@@ -179,8 +206,8 @@ void QuadrupleList::inline_functions() {
                                    (it-1)->op == PARAM ||
                                    ((it-1)->op == LABEL && (it-1)->target->toString()[0]=='_'))
                                && vars_for_each_function.count(scope_name) != 0) {
-            for (std::string var: vars_for_each_function[scope_name]) {
-                it = new_qcode.insert(it, Quadruple(VAR, new OperandSymbol(var)));
+            for (Quadruple var: vars_for_each_function[scope_name]) {
+                it = new_qcode.insert(it, var);
                 it++;
             }
         }
@@ -190,17 +217,35 @@ void QuadrupleList::inline_functions() {
 
 std::map<std::string, std::vector<Quadruple> > QuadrupleList::get_inlineable_functions() {
     std::map<std::string, std::vector<Quadruple> > inlineable_functions;
+    std::map<std::string, std::set<std::string> > call_relations;
+    std::vector<std::string> functions;
     
     std::string scope_name = "_42global_";
     for (Quadruple q: qcode) {
-        if (q.op == LABEL && q.target->toString()[0]=='_' && q.target->toString()!="__main__") {
+        if (is_function_label(q)) {
             scope_name = q.target->toString();
-            inlineable_functions[scope_name] = std::vector<Quadruple>();
+            call_relations[scope_name] = std::set<std::string>();
+            functions.push_back(scope_name);
         } else if (q.op == CALL) {
-            std::map<std::string, std::vector<Quadruple> >::iterator find_it = inlineable_functions.find(scope_name);
-            if (find_it != inlineable_functions.end())
-                inlineable_functions.erase(find_it);
-        } else if (inlineable_functions.count(scope_name) != 0){
+            call_relations[scope_name].insert(q.target->toString());
+        }
+    }
+    for (std::string caller: functions) {
+        unsigned long out_degree = call_relations[caller].size();
+        for (std::string callee: call_relations[caller]) {
+            if (call_relations[callee].count(callee) && caller != callee)
+                out_degree--;
+        }
+        if (out_degree == 0 && caller != "__main__") { // Degree_out == 0 (except for calling recursive functions)
+            inlineable_functions[caller] = std::vector<Quadruple>();
+        }
+    }
+    
+    scope_name = "_42global_";
+    for (Quadruple q: qcode) {
+        if (is_function_label(q)) {
+            scope_name = q.target->toString();
+        } else if (inlineable_functions.count(scope_name)) {        // ignore the "Label __func__"
             inlineable_functions[scope_name].push_back(q);
         }
     }

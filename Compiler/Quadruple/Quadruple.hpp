@@ -31,7 +31,8 @@ public:
     // ADD t, f, s;  SLT t, f, s;  LARR t, s, i;  BEQ l, f, s;
     Quadruple(Operator opt, Operand *target, Operand *first, Operand *second);
 
-    std::string toString();
+    std::string toString() const;
+    friend bool operator < (const Quadruple &x, const Quadruple &y);
 };
 
 
@@ -64,6 +65,7 @@ public:
     OperandSymbol *getOperandSymbol(std::shared_ptr<Symbol> symbol);
     
     std::map<std::string, std::vector<Quadruple> > get_inlineable_functions();
+    void inline_functions_single(std::map<std::string, std::vector<Quadruple> > inlineable_functions);
     void inline_functions();
     void sortout_labels();
 };
