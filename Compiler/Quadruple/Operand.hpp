@@ -11,6 +11,7 @@
 
 #include <map>
 #include <string>
+#include <set>
 
 enum Operator {
     ADD, SUB, MULT, DIV,                // Arithmetic ( (Temp)Symbol / InstantNum )
@@ -28,7 +29,8 @@ enum Operator {
 };
 
 extern std::map<Operator, std::string> op2str;
-
+extern std::set<Operator> modify_target_operators;
+extern std::set<Operator> ref_target_operators;
 
 class Operand {
 public:

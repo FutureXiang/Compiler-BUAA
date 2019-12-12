@@ -51,9 +51,6 @@ class Interpreter {
     const std::vector<int> reg_avail{8,9,10,11,12,13,14,15};
     std::string scope_name;
     Quadruple code;                                     // ONGOING qcode
-
-    const std::set<Operator> modify_target_operators{ADD, SUB, MULT, DIV, LI, MV, LARR, READ_INT, READ_CHAR};
-    const std::set<Operator> ref_target_operators{SARR, WRITE_INT, WRITE_CHAR};
     
 public:
     Interpreter(std::vector<Quadruple> *qs, std::vector<std::pair<int, int> > &block_start_ends) {

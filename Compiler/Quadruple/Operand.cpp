@@ -51,3 +51,6 @@ std::map<Operator, std::string> op2str = {
     {BEQZ, "BEQZ"},
     {BNEZ, "BNEZ"},
 };
+
+std::set<Operator> modify_target_operators{ADD, SUB, MULT, DIV, LI, MV, LARR, READ_INT, READ_CHAR};
+std::set<Operator> ref_target_operators{SARR, WRITE_INT, WRITE_CHAR};

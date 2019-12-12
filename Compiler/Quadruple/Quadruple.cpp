@@ -301,5 +301,9 @@ void QuadrupleList::sortout_labels() {
             if (labelDeleted.count(it->target->toString()))
                 ((OperandLabel *)(it->target))->label = labelDeleted[it->target->toString()];
         }
+        // Label without reference
+        if (is_control_label(*it) && label_using_count.count(it->target->toString()) == 0) {
+            it = qcode.erase(it) - 1;
+        }
     }
 }
