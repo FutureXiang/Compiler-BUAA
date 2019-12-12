@@ -15,6 +15,7 @@
 #include <iostream>
 #include <queue>
 #include <set>
+#include "../Quadruple/BlocksDivide.hpp"
 
 // (OperandSymbol)      _global_x:   use:    la $t, _global_x;  lw $x, 0($t)
 // (OperandSymbol)      _main_x:     use:    lw $x, addr($sp)
@@ -40,8 +41,8 @@ public:
 
 class Interpreter {
     PeekQueue<Quadruple> qcodes = PeekQueue<Quadruple>();
-    std::vector<std::pair<int, int> > blocks;
-    std::set<int> end_indexes;
+    std::vector<CodeBlock *> blocks;
+    std::map<int, CodeBlock *> end2block;
     std::vector<std::string> mcodes;
     
     std::map<std::string, UniqueSymbol*> name2symbol;   // string name -> UniqueSymbol *symbol -> int addr
@@ -53,10 +54,10 @@ class Interpreter {
     Quadruple code;                                     // ONGOING qcode
     
 public:
-    Interpreter(std::vector<Quadruple> *qs, std::vector<std::pair<int, int> > &block_start_ends) {
-        blocks = block_start_ends;
-        for (std::pair<int, int> s_e: blocks) {
-            end_indexes.insert(s_e.second);
+    Interpreter(std::vector<Quadruple> *qs) {
+        blocks = Divider(qs);
+        for (auto block: blocks) {
+            end2block[block->end] = block;
         }
         for (Quadruple qcode: *qs)
             qcodes.add(qcode);
@@ -204,9 +205,13 @@ public:
                 if (symbol->addr == -1) {
                     addCode(format("la", "$a0", symbol->name), offset);
                     addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0), offset);
-                } else if (symbol->dirty)
+                } else if (symbol->dirty) {
                     // [INLINE --> SIDE EFFECT] NEED TO SAVE EVERYTHING DIRTY AT THE END OF BLOCKs
-                    addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr), offset);
+                    if (is_caller_saving_env)                                                       // Before CALL: inside a block
+                        addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr), offset);
+                    else if (end2block[qcodes.last_poped_index()]->out.count(symbol->name))         // At the block END: Live Variables Analysis --- only save "OUT"s of the block
+                        addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr), offset);
+                }
                 symbol->inited = true;
                 symbol->dirty = false;
             }
@@ -218,7 +223,7 @@ public:
     }
     bool isEndOfBlock(int index) {
         // LABEL, GOTO, Branch
-        return end_indexes.count(index) != 0;
+        return end2block.count(index) != 0;
     }
     bool isGoingToFuncEndOrCalling() {
         return code.op == RET || code.op == CALL;

@@ -96,7 +96,17 @@ bool is_function_label(Quadruple q) {
     return q.op == LABEL && q.target->toString().substr(0, 2) == "__";
 }
 
-bool is_localvar(std::string s) {
+bool is_var(Operand *rand) {
+    if (!rand->is_symbol)
+        return false;
+    std::string s = rand->toString();
+    return s[0] != 'a' && s[0] != '$';
+}
+
+bool is_localvar(Operand *rand) {
+    if (!rand->is_symbol)
+        return false;
+    std::string s = rand->toString();
     return s[0] != 'a' && s[0] != '$' && s.substr(0, 3) != "_42";
 }
 
@@ -164,23 +174,23 @@ void QuadrupleList::inline_functions_single(std::map<std::string, std::vector<Qu
                 }
                 if (func_code.op == MV && func_code.target->toString() == "$v0" && use_ret_value != caller) {   // instruction after caller is using $v0 @ MV, xx, $v0
                     Quadruple replaced = func_code;
-                    if (replaced.first->is_symbol && is_localvar(replaced.first->toString()))
+                    if (is_localvar(replaced.first))
                         replaced.first = new OperandSymbol(inline_vars_head + replaced.first->toString());
                     new_qcode.push_back(Quadruple(MV, use_ret_value->target, replaced.first));
                     continue;
                 }
                 Quadruple replaced = func_code;
-                if (replaced.target != nullptr && replaced.target->is_symbol && is_localvar(replaced.target->toString())) {
+                if (replaced.target != nullptr && is_localvar(replaced.target)) {
                     replaced.target = new OperandSymbol(inline_vars_head + replaced.target->toString());
                     if (func_code.target->isTemp())
                         vars_for_each_function[scope_name].insert(Quadruple(VAR, replaced.target));
                 }
-                if (replaced.first != nullptr && replaced.first->is_symbol && is_localvar(replaced.first->toString())) {
+                if (replaced.first != nullptr && is_localvar(replaced.first)) {
                     replaced.first = new OperandSymbol(inline_vars_head + replaced.first->toString());
                     if (func_code.first->isTemp())
                         vars_for_each_function[scope_name].insert(Quadruple(VAR, replaced.first));
                 }
-                if (replaced.second != nullptr && replaced.second->is_symbol && is_localvar(replaced.second->toString())) {
+                if (replaced.second != nullptr && is_localvar(replaced.second)) {
                     replaced.second = new OperandSymbol(inline_vars_head + replaced.second->toString());
                     if (func_code.second->isTemp())
                         vars_for_each_function[scope_name].insert(Quadruple(VAR, replaced.second));

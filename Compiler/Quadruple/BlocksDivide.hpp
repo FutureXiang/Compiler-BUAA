@@ -12,6 +12,45 @@
 #include <vector>
 #include "Quadruple.hpp"
 
-std::vector<std::pair<int, int> > Divider(std::vector<Quadruple> *qcodes);
+
+class CodeBlock {
+private:
+
+public:
+    int start;
+    int end;
+    std::vector<CodeBlock *> next;
+    std::set<std::string> use;
+    std::set<std::string> def;
+    std::set<std::string> in;
+    std::set<std::string> out;
+    
+    CodeBlock(int s, int e) {
+        start = s;
+        end = e;
+    }
+
+    std::pair<int, int> getRange() {
+        return std::make_pair(start, end);
+    }
+
+    void addEdge(CodeBlock *another) {
+        next.push_back(another);
+//        std::cerr << this->toString() << "--->" << another->toString() << std::endl;
+    }
+    
+    std::string toString() {
+        return "(" + std::to_string(start+1) + ", " + std::to_string(end+1) + ")";
+    }
+};
+
+std::vector<CodeBlock *> Divider(std::vector<Quadruple> *qcodes);
+void buildGraph(std::vector<Quadruple> *const qcodes, const std::vector<CodeBlock *> &blocks);
+void liveVariableAnalysis(std::vector<Quadruple> *const qcodes, const std::vector<CodeBlock *> &blocks);
+void useDefAnalysis(std::vector<Quadruple> *const qcodes, const std::vector<CodeBlock *> &blocks);
+
+std::set<std::string> set_diff(std::set<std::string> x, std::set<std::string> y);
+std::set<std::string> set_union(std::set<std::string> x, std::set<std::string> y);
+void set_toString(std::string title, std::set<std::string> &aSet);
 
 #endif /* BlocksDivide_hpp */
