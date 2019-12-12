@@ -172,13 +172,6 @@ void QuadrupleList::inline_functions_single(std::map<std::string, std::vector<Qu
                     new_qcode.push_back(Quadruple(GOTO, end_label));
                     continue;
                 }
-                if (func_code.op == MV && func_code.target->toString() == "$v0" && use_ret_value != caller) {   // instruction after caller is using $v0 @ MV, xx, $v0
-                    Quadruple replaced = func_code;
-                    if (is_localvar(replaced.first))
-                        replaced.first = new OperandSymbol(inline_vars_head + replaced.first->toString());
-                    new_qcode.push_back(Quadruple(MV, use_ret_value->target, replaced.first));
-                    continue;
-                }
                 Quadruple replaced = func_code;
                 if (replaced.target != nullptr && is_localvar(replaced.target)) {
                     replaced.target = new OperandSymbol(inline_vars_head + replaced.target->toString());
@@ -200,6 +193,8 @@ void QuadrupleList::inline_functions_single(std::map<std::string, std::vector<Qu
                     if (label_mapping.count(label) == 0)
                         label_mapping[label] = new OperandLabel(allocLabel());
                     replaced.target = label_mapping[label];
+                } else if (replaced.target->toString() == "$v0" && use_ret_value != caller) {           // {MV $v0, t0 / ADDU $v0, t0, t1} + MV ans, $v0
+                    replaced.target = use_ret_value->target;
                 }
                 new_qcode.push_back(replaced);
             }

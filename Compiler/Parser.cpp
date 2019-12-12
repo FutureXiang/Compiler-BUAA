@@ -274,7 +274,12 @@ void Parser::returnStatement() {
         type = expr(temp);
         
         /* QUAD-CODE: MOVE RETURN-VALUE TO v0, THEN RETURN */
-        qcodes.addCode(Quadruple(MV, (Operand *)&qcodes.v0Symbol, temp));
+        if ((qcodes.getQCodes()->end()-1)->target == temp
+            && modify_target_operators.count((qcodes.getQCodes()->end()-1)->op)
+            && temp->isTemp())
+            (qcodes.getQCodes()->end()-1)->target = (Operand *)&qcodes.v0Symbol;
+        else
+            qcodes.addCode(Quadruple(MV, (Operand *)&qcodes.v0Symbol, temp));
         mustBeThisToken(rBracket);
     }
     /* QUAD-CODE: RETURN */
@@ -471,7 +476,12 @@ void Parser::loopStatement() {
         Operand *sym_operand = qcodes.getOperandSymbol(table.getSymbolByName(identifier.getText()));
         Operand *temp = nullptr;
         expr(temp);
-        qcodes.addCode(Quadruple(MV, sym_operand, temp));
+        if ((qcodes.getQCodes()->end()-1)->target == temp
+            && modify_target_operators.count((qcodes.getQCodes()->end()-1)->op)
+            && temp->isTemp())
+            (qcodes.getQCodes()->end()-1)->target = sym_operand;
+        else
+            qcodes.addCode(Quadruple(MV, sym_operand, temp));
         mustBeThisToken(semi);
         
         Operand *boolean_calc_label = new OperandLabel(qcodes.allocLabel());
