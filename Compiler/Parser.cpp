@@ -387,7 +387,9 @@ void Parser::assignStatement() {
         expr(result);
         
         /* QUAD-CODE: SAVE VALUE TO SYMBOL */
-        if ((qcodes.getQCodes()->end()-1)->target == result && modify_target_operators.count((qcodes.getQCodes()->end()-1)->op))
+        if ((qcodes.getQCodes()->end()-1)->target == result
+            && modify_target_operators.count((qcodes.getQCodes()->end()-1)->op)
+            && result->isTemp())
             (qcodes.getQCodes()->end()-1)->target = sym_operand;
         else
             qcodes.addCode(Quadruple(MV, sym_operand, result));
