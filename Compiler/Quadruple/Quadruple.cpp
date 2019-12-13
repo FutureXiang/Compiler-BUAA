@@ -152,10 +152,16 @@ void QuadrupleList::inline_functions_single(std::map<std::string, std::vector<Qu
             const std::string inline_vars_head = "_inline_" + function_name;
             Operand *end_label = new OperandLabel(allocLabel());
             
+            std::set<std::string> params_only_refed;
+            std::map<std::string, Operand*> params_source_args;
+            
+            auto args_copy_to_params_start = new_qcode.size();
             for (int i = 0; i < valueArgs.size(); ++i) {
                 // Params must be a "PARAM" as a local VAR.
                 Operand *funcArg = new OperandSymbol(inline_vars_head + func_codes[i].target->toString());
                 new_qcode.push_back(Quadruple(MV, funcArg, valueArgs[i]));
+                params_only_refed.insert(funcArg->toString());
+                params_source_args[funcArg->toString()] = valueArgs[i];
             }
             
             std::map<std::string, Operand*> label_mapping;
@@ -177,6 +183,8 @@ void QuadrupleList::inline_functions_single(std::map<std::string, std::vector<Qu
                     replaced.target = new OperandSymbol(inline_vars_head + replaced.target->toString());
                     if (func_code.target->isTemp())
                         vars_for_each_function[scope_name].insert(Quadruple(VAR, replaced.target));
+                    if (params_only_refed.count(replaced.target->toString()) && modify_target_operators.count(replaced.op))
+                        params_only_refed.erase(replaced.target->toString());
                 }
                 if (replaced.first != nullptr && is_localvar(replaced.first)) {
                     replaced.first = new OperandSymbol(inline_vars_head + replaced.first->toString());
@@ -199,6 +207,27 @@ void QuadrupleList::inline_functions_single(std::map<std::string, std::vector<Qu
                 new_qcode.push_back(replaced);
             }
             new_qcode.push_back(Quadruple(LABEL, end_label));
+            
+            auto it = new_qcode.begin() + args_copy_to_params_start;
+            int checked = 0;
+            while (checked < valueArgs.size()) {
+                checked++;
+                if (params_only_refed.count(it->target->toString())) {
+//                    std::cerr << "removed: " << it->toString() << std::endl;
+                    it = new_qcode.erase(it);
+                } else
+                    it++;
+            }
+            
+            for (; it != new_qcode.end(); ++it) {
+                if (it->target != nullptr && params_only_refed.count(it->target->toString()))
+                    it->target = params_source_args[it->target->toString()];
+                if (it->first != nullptr && params_only_refed.count(it->first->toString()))
+                    it->first = params_source_args[it->first->toString()];
+                if (it->second != nullptr && params_only_refed.count(it->second->toString()))
+                    it->second = params_source_args[it->second->toString()];
+            }
+            
         } else {
             new_qcode.push_back(*it);
         }
