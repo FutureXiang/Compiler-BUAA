@@ -430,21 +430,31 @@ void Parser::loopStatement() {
         printPop();
         mustBeThisToken(lBracket);
         
-        Operand *boolean_calc_label = new OperandLabel(qcodes.allocLabel());
-        qcodes.addCode(Quadruple(LABEL, boolean_calc_label));
+        Operand *body_label = new OperandLabel(qcodes.allocLabel());
         Operand *end_label = new OperandLabel(qcodes.allocLabel());
         
+        auto condition_start = qcodes.getQCodes()->end();
         Operand *first = nullptr, *second = nullptr;
         Operator comp = condition(first, second);
+        auto condition_end = qcodes.getQCodes()->end();
+        
         // result == false --> jump to end_label
         if (second ==  nullptr)
             qcodes.addCode(Quadruple(BEQZ, end_label, first));
         else
             qcodes.addCode(Quadruple(condition2branch(comp, false), end_label, first, second));
         
+        qcodes.addCode(Quadruple(LABEL, body_label));
         mustBeThisToken(rBracket);
         statement();
-        qcodes.addCode(Quadruple(GOTO, boolean_calc_label));
+        
+        for (auto it = condition_start; it != condition_end; ++it)
+            qcodes.addCode(*it);
+        if (second ==  nullptr)
+            qcodes.addCode(Quadruple(BNEZ, body_label, first));
+        else
+            qcodes.addCode(Quadruple(condition2branch(comp, true), body_label, first, second));
+        
         qcodes.addCode(Quadruple(LABEL, end_label));
     } else if (data.peek().getType() == doKey) {                                    // do＜语句＞while '('＜条件＞')'
         printPop();
@@ -484,12 +494,14 @@ void Parser::loopStatement() {
             qcodes.addCode(Quadruple(MV, sym_operand, temp));
         mustBeThisToken(semi);
         
-        Operand *boolean_calc_label = new OperandLabel(qcodes.allocLabel());
-        qcodes.addCode(Quadruple(LABEL, boolean_calc_label));
+        Operand *body_label = new OperandLabel(qcodes.allocLabel());
         Operand *end_label = new OperandLabel(qcodes.allocLabel());
         
+        auto condition_start = qcodes.getQCodes()->end();
         Operand *first = nullptr, *second = nullptr;
         Operator comp = condition(first, second);
+        auto condition_end = qcodes.getQCodes()->end();
+        
         // result == false --> jump to end_label
         if (second ==  nullptr)
             qcodes.addCode(Quadruple(BEQZ, end_label, first));
@@ -524,11 +536,19 @@ void Parser::loopStatement() {
         } else {
 //            error(__othererror__);
         }
+        
+        qcodes.addCode(Quadruple(LABEL, body_label));
         mustBeThisToken(rBracket);
         statement();
-
         qcodes.addCode(stepping);
-        qcodes.addCode(Quadruple(GOTO, boolean_calc_label));
+        
+        for (auto it = condition_start; it != condition_end; ++it)
+            qcodes.addCode(*it);
+        if (second ==  nullptr)
+            qcodes.addCode(Quadruple(BNEZ, body_label, first));
+        else
+            qcodes.addCode(Quadruple(condition2branch(comp, true), body_label, first, second));
+        
         qcodes.addCode(Quadruple(LABEL, end_label));
     }
     mark("<循环语句>");
