@@ -68,6 +68,7 @@ public:
     void inline_functions_single(std::map<std::string, std::vector<Quadruple> > inlineable_functions);
     void inline_functions();
     void sortout_labels();
+    void reduce();
 };
 
 

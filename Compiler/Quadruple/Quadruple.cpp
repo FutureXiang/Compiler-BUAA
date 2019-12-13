@@ -269,6 +269,8 @@ bool using_control_label(Quadruple q) {
 }
 
 void QuadrupleList::sortout_labels() {
+    reduce();
+    
     std::map<std::string, std::string> labelDeleted;
     std::map<std::string, int> label_using_count;
     
@@ -309,6 +311,48 @@ void QuadrupleList::sortout_labels() {
         // Label without reference
         if (is_control_label(*it) && label_using_count.count(it->target->toString()) == 0) {
             it = qcode.erase(it) - 1;
+        }
+    }
+}
+
+void QuadrupleList::reduce() {
+    for (std::vector<Quadruple>::iterator it = qcode.begin() + 1; it != qcode.end(); ++it) {
+        Quadruple code = *it;
+        if (code.op >= BEQ && code.op <= BLE) {
+            if (code.first->is_instant && code.second->is_instant) {
+                int firstValue = ((OperandInstant *)code.first)->value;
+                int secondValue = ((OperandInstant *)code.second)->value;
+                bool True;
+                switch (code.op) {
+                   case BLT:
+                       True = firstValue < secondValue;
+                       break;
+                   case BLE:
+                       True = firstValue <= secondValue;
+                       break;
+                   case BGT:
+                       True = firstValue > secondValue;
+                       break;
+                   case BGE:
+                       True = firstValue >= secondValue;
+                       break;
+                   case BNE:
+                       True = firstValue != secondValue;
+                       break;
+                   case BEQ:
+                       True = firstValue == secondValue;
+                       break;
+                   default:
+                       True = false;
+                       break;
+                }
+                if (True) {
+                    it->op = GOTO;
+                    it->first = nullptr;
+                    it->second = nullptr;
+                } else
+                    it = qcode.erase(it) - 1;
+            }
         }
     }
 }

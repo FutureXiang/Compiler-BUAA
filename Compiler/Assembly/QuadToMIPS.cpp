@@ -7,7 +7,6 @@
 //
 
 #include "QuadToMIPS.hpp"
-#include <algorithm>
 
 void Interpreter::run() {
     addCode(".data");
@@ -15,6 +14,10 @@ void Interpreter::run() {
         VarArrStr_Def();
     addCode("\n");
     addCode(".text");
+    // ADD global regs for global arrays
+    for (auto pair: name2symbol)
+        if (pair.second->is_array && name2globalreg_assignment.count(pair.first))
+            addCode(format("la", "$"+std::to_string(name2globalreg_assignment[pair.first]), pair.first));
     addCode(format("j", "__main__"));
     addCode("\n");
     while (!qcodes.empty()) {
@@ -24,6 +27,12 @@ void Interpreter::run() {
     }
 }
 
+const std::vector<int> Interpreter::reg_avail = {
+    8,9,10,11,12,13,14,15, 24,25,
+};
+const std::vector<int> Interpreter::global_reg_avail = {
+    16,17,18,19,20,21,22,23,
+};
 
 void Interpreter::VarArrStr_Def() {
     code = qcodes.pop();
@@ -154,7 +163,7 @@ void Interpreter::Function_Def() {
         else if (code.op == RET) {
             if (scope_name != "__main__") {
                 addCode("\n");
-                releaseAllGlobals();
+                releaseAllGlobals(false);
                 addCode(format("addiu", "$sp", "$sp", std::to_string(sp_words * 4)));
                 addCode(format("jr", "$ra"));
             } else {
@@ -175,7 +184,7 @@ void Interpreter::Function_Def() {
         for (auto identifier: need_spaces)
             name2symbol.erase(identifier);
         addCode("\n");
-        releaseAllGlobals();
+        releaseAllGlobals(true);
         addCode(format("addiu", "$sp", "$sp", std::to_string(sp_words * 4)));
         addCode(format("jr", "$ra"));
     } else {
@@ -219,4 +228,36 @@ void Interpreter::Function_Call() {
     addCode(format("jal", code.target->toString()));
     addCode("\n");
     load_regs();
+}
+
+std::map<std::string, int> usageCount(std::vector<Quadruple> *const qcodes) {
+    std::map<std::string, int> counter;
+
+    for (auto qcode: *qcodes) {
+        Operand *target = qcode.target;
+        Operand *first = qcode.first;
+        Operand *second = qcode.second;
+
+        if (first != nullptr && is_var(first)) {
+            mapAddOne(counter, first->toString());
+        }
+        if (second != nullptr && is_var(second)) {
+            mapAddOne(counter, second->toString());
+        }
+        if (target != nullptr && is_var(target)) {
+            mapAddOne(counter, target->toString());
+        }
+    }
+    return counter;
+}
+
+void mapAddOne(std::map<std::string, int> &counter, std::string x) {
+    if (counter.count(x))
+        counter[x]++;
+    else
+        counter[x] = 1;
+}
+
+bool cmpByPairSecond(const std::pair<std::string, int> &l, const std::pair<std::string, int> &r) {
+    return l.second > r.second;
 }

@@ -16,6 +16,7 @@
 #include <queue>
 #include <set>
 #include "../Quadruple/BlocksDivide.hpp"
+#include <algorithm>
 
 // (OperandSymbol)      _global_x:   use:    la $t, _global_x;  lw $x, 0($t)
 // (OperandSymbol)      _main_x:     use:    lw $x, addr($sp)
@@ -38,6 +39,9 @@ public:
     }
 };
 
+std::map<std::string, int> usageCount(std::vector<Quadruple> *const qcodes);
+void mapAddOne(std::map<std::string, int> &counter, std::string x);
+bool cmpByPairSecond(const std::pair<std::string, int> &l, const std::pair<std::string, int> &r);
 
 class Interpreter {
     PeekQueue<Quadruple> qcodes = PeekQueue<Quadruple>();
@@ -48,8 +52,11 @@ class Interpreter {
     std::map<std::string, UniqueSymbol*> name2symbol;   // string name -> UniqueSymbol *symbol -> int addr
 
     std::map<UniqueSymbol*, int> symbol2reg;            // UniqueSymbol *symbol -> int reg_using
+    std::map<UniqueSymbol*, int> localsymbol2globalreg; // UniqueSymbol *symbol -> int reg_using
+    std::map<std::string, int> name2globalreg_assignment;
     std::vector<int> reg_free, reg_used;
-    const std::vector<int> reg_avail{8,9,10,11,12,13,14,15};
+    static const std::vector<int> reg_avail;
+    static const std::vector<int> global_reg_avail;
     std::string scope_name;
     Quadruple code;                                     // ONGOING qcode
     
@@ -62,6 +69,7 @@ public:
         for (Quadruple qcode: *qs)
             qcodes.add(qcode);
         reg_free = reg_avail;
+        global_regs(qs);
         run();
     }
     
@@ -103,6 +111,25 @@ public:
     
     int regForThis(std::string name, bool refer) {
         UniqueSymbol* symbol = name2symbol[name];
+        
+        // $s_x
+        if (name2globalreg_assignment.count(name)) {
+            if (symbol->addr == -1)
+                return name2globalreg_assignment[name];
+
+            if (localsymbol2globalreg.count(symbol) == 0) {
+                // INITIALIZE @ first use / RESTORE @ jal_next
+                localsymbol2globalreg[symbol] = name2globalreg_assignment[name];
+                if (!symbol->is_array) {
+                    if (symbol->inited && refer)
+                        addCode(LwSw('l', "$"+std::to_string(localsymbol2globalreg[symbol]), "$sp", symbol->addr));
+                } else
+                    addCode(format("addiu", "$"+std::to_string(localsymbol2globalreg[symbol]), "$sp", std::to_string(symbol->addr)));
+            }
+            return name2globalreg_assignment[name];
+        }
+        
+        // $t_x
         if (symbol2reg.count(symbol) == 0) {
             symbol2reg[symbol] = allocReg(symbol);
 //            std::cout << symbol->name << " is_array:" << symbol->is_array << " addr:" << symbol->addr << std::endl;
@@ -175,7 +202,10 @@ public:
             }
         }
     }
-    void releaseAllGlobals() {
+    void releaseAllGlobals(bool empty_container) {
+        // @ RET: only print "sw", don't empty symbol2reg
+        // @ END: print "sw" + empty symbol2reg
+
         // Locals are not saved back. We don't need them anymore.
 //        addCode("\n# RELEASE GLOBAL REGS START ----------");
         for (auto pair : symbol2reg) {
@@ -186,17 +216,36 @@ public:
                     addCode(format("la", "$a0", symbol->name));
                     addCode(LwSw('s', "$"+std::to_string(reg), "$a0", 0));
                 }
-                symbol->inited = true;
-                symbol->dirty = false;
+                if (empty_container) {
+                    symbol->inited = true;
+                    symbol->dirty = false;
+                }
             }
         }
 //        addCode("# RELEASE GLOBAL REGS  END  ----------\n");
-        symbol2reg.clear();
-        reg_free = reg_avail;
-        reg_used = std::vector<int>();
+        if (empty_container) {
+            // CLEAR localsymbol2globalreg & symbol2reg
+            localsymbol2globalreg.clear();
+            symbol2reg.clear();
+            reg_free = reg_avail;
+            reg_used = std::vector<int>();
+        }
     }
     void releaseAll(bool is_caller_saving_env, int offset) {
 //        addCode("\n# RELEASE REGS START ----------"+code.toString(), offset);
+        // ONLY RELEASE $s0 [for local vars] @ jal (is_caller_saving_env == true)
+        if (is_caller_saving_env) {
+            for (auto pair: localsymbol2globalreg) {
+                int reg = pair.second;
+                UniqueSymbol *symbol = pair.first;
+                if (!symbol->is_array && symbol->dirty)
+                    addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr), offset);
+                symbol->inited = true;
+                symbol->dirty = false;
+            }
+            localsymbol2globalreg.clear();
+        }
+
         for (auto pair : symbol2reg) {
             int reg = pair.second;
             UniqueSymbol *symbol = pair.first;
@@ -227,6 +276,24 @@ public:
     }
     bool isGoingToFuncEndOrCalling() {
         return code.op == RET || code.op == CALL;
+    }
+    
+    void global_regs(std::vector<Quadruple> *qcodes) {
+        std::map<std::string, int> usage = usageCount(qcodes);
+        
+        std::vector<std::pair<std::string, int> > usage_vector;
+        for (auto pair: usage) usage_vector.push_back(pair);
+        std::sort(usage_vector.begin(), usage_vector.end(), cmpByPairSecond);
+        for (int i = 0; i < std::min(global_reg_avail.size(), usage_vector.size()); ++i)
+            name2globalreg_assignment[usage_vector[i].first] = global_reg_avail[i];
+        
+        bool OUTPUT_count = false;
+        if (OUTPUT_count) {
+            for (auto pair: usage)
+                std::cerr << pair.first << " :: " << pair.second << std::endl;
+            for (auto pair: name2globalreg_assignment)
+                std::cerr << pair.first << " --> " << pair.second << std::endl;
+        }
     }
 };
 
