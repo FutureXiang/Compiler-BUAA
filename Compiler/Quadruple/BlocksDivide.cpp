@@ -43,7 +43,7 @@ void buildGraph(std::vector<Quadruple> *const qcodes, const std::vector<CodeBloc
     for (auto block: blocks) {
         for (int i = block->start; i <= block->end; ++i) {
             Operator op = (*qcodes)[i].op;
-            if (op == GOTO || (op >= BEQ && op <= BNEZ)) {
+            if (op == GOTO || (op >= BEQ && op <= BNEZ) || op == CALL) {
                 std::string target = (*qcodes)[i].target->toString();
                 assert (lineNoForLabel.count(target));
                 int lineNo = lineNoForLabel[target];
@@ -109,14 +109,10 @@ void useDefAnalysis(std::vector<Quadruple> *const qcodes, const std::vector<Code
             }
             if (target != nullptr && is_var(target) && !visited.count(target->toString())) {
                 visited.insert(target->toString());
-                if (is_globalvar(target))                   // GLOBAL VARS MUST BE ALIVE
+                if (modify_target_operators.count(op))
+                    block->def.insert(target->toString());
+                else if (ref_target_operators.count(op))
                     block->use.insert(target->toString());
-                else {
-                    if (modify_target_operators.count(op))
-                        block->def.insert(target->toString());
-                    else if (ref_target_operators.count(op))
-                        block->use.insert(target->toString());
-                }
             }
         }
         assert((block->def.size() + block->use.size()) == visited.size());
@@ -180,14 +176,10 @@ std::set<int> deadCodeElimination(std::vector<Quadruple> *const qcodes, const st
             }
             if (target != nullptr && is_var(target) && !visited.count(target->toString())) {
                 visited.insert(target->toString());
-                if (is_globalvar(target))                   // GLOBAL VARS MUST BE ALIVE
+                if (modify_target_operators.count(op))
+                    percode_def[i].insert(target->toString());
+                else if (ref_target_operators.count(op))
                     percode_use[i].insert(target->toString());
-                else {
-                    if (modify_target_operators.count(op))
-                        percode_def[i].insert(target->toString());
-                    else if (ref_target_operators.count(op))
-                        percode_use[i].insert(target->toString());
-                }
             }
         }
     }
