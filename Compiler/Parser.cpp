@@ -1064,10 +1064,14 @@ Parser::Parser(std::set<std::pair<int, std::string> > &mess, PeekQueue<Token> da
     this->qcodes = QuadrupleList();
     program();
     
-//    for(auto qcode: *qcodes.getQCodes())
-//        std::cerr << qcode.toString() << std::endl;
+    freopen("17231145_向未来_优化前中间代码.txt", "w", stderr);
+    for(auto qcode: *qcodes.getQCodes())
+        std::cerr << qcode.toString() << std::endl;
+    fclose(stderr);
     qcodes.inline_functions();
     qcodes.sortout_labels();
-//    for(auto qcode: *qcodes.getQCodes())
-//        std::cerr << qcode.toString() << std::endl;
+    freopen("17231145_向未来_优化后中间代码.txt", "w", stderr);
+    for(auto qcode: *qcodes.getQCodes())
+        std::cerr << qcode.toString() << std::endl;
+    fclose(stderr);
 }

@@ -109,10 +109,14 @@ void useDefAnalysis(std::vector<Quadruple> *const qcodes, const std::vector<Code
             }
             if (target != nullptr && is_var(target) && !visited.count(target->toString())) {
                 visited.insert(target->toString());
-                if (modify_target_operators.count(op))
-                    block->def.insert(target->toString());
-                else if (ref_target_operators.count(op))
+                if (is_globalvar(target))                   // GLOBAL VARS MUST BE ALIVE
                     block->use.insert(target->toString());
+                else {
+                    if (modify_target_operators.count(op))
+                        block->def.insert(target->toString());
+                    else if (ref_target_operators.count(op))
+                        block->use.insert(target->toString());
+                }
             }
         }
         assert((block->def.size() + block->use.size()) == visited.size());
@@ -147,4 +151,80 @@ void set_toString(std::string title, std::set<std::string> &aSet) {
     for (auto e: aSet)
         std::cerr << e << ", ";
     std::cerr << " }" << std::endl;
+}
+
+std::set<int> deadCodeElimination(std::vector<Quadruple> *const qcodes, const std::vector<CodeBlock *> &blocks) {
+    std::map<int, std::set<std::string> > percode_use;
+    std::map<int, std::set<std::string> > percode_def;
+    
+    // Use-Def Analysis Per Code
+    for (auto block: blocks) {
+        for (int i = block->start; i <= block->end; ++i) {
+            Operator op = (*qcodes)[i].op;
+            Operand *target = (*qcodes)[i].target;
+            Operand *first = (*qcodes)[i].first;
+            Operand *second = (*qcodes)[i].second;
+            
+            std::set<std::string> visited;
+            
+            if (op == VAR || op == PARAM)
+                continue;
+            // x=x+y: use
+            if (first != nullptr && is_var(first) && !visited.count(first->toString())) {
+                visited.insert(first->toString());
+                percode_use[i].insert(first->toString());
+            }
+            if (second != nullptr && is_var(second) && !visited.count(second->toString())) {
+                visited.insert(second->toString());
+                percode_use[i].insert(second->toString());
+            }
+            if (target != nullptr && is_var(target) && !visited.count(target->toString())) {
+                visited.insert(target->toString());
+                if (is_globalvar(target))                   // GLOBAL VARS MUST BE ALIVE
+                    percode_use[i].insert(target->toString());
+                else {
+                    if (modify_target_operators.count(op))
+                        percode_def[i].insert(target->toString());
+                    else if (ref_target_operators.count(op))
+                        percode_use[i].insert(target->toString());
+                }
+            }
+        }
+    }
+    
+    std::set<int> deads;
+    std::map<int, std::set<std::string> > percode_in;
+    std::map<int, std::set<std::string> > percode_out;
+    
+    // Live Variable Analysis Per Code
+    for (auto block: blocks) {
+        bool finished = false;
+        while (!finished) {
+            finished = true;
+            for (int i = block->end; i >= block->start; --i) {
+                std::set<std::string> temp_out, temp_in;
+                if (i == block->end)
+                    temp_out = block->out;
+                else
+                    temp_out = percode_in[i+1];
+                
+                percode_out[i] = temp_out;
+                temp_in = set_diff(percode_out[i], percode_def[i]);
+                temp_in = set_union(percode_use[i], temp_in);
+                
+                if (temp_in != percode_in[i]) {
+                    finished = false;
+                    percode_in[i] = temp_in;
+                }
+            }
+        }
+        for (int i = block->start; i <= block->end; ++i) {
+            Operator op = (*qcodes)[i].op;
+            Operand *target = (*qcodes)[i].target;
+            if (target != nullptr && is_var(target) && modify_target_operators.count(op))
+                if (!percode_out[i].count(target->toString()) && op != READ_INT && op != READ_CHAR)
+                    deads.insert(i);
+        }
+    }
+    return deads;
 }

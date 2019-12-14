@@ -53,4 +53,6 @@ std::set<std::string> set_diff(std::set<std::string> x, std::set<std::string> y)
 std::set<std::string> set_union(std::set<std::string> x, std::set<std::string> y);
 void set_toString(std::string title, std::set<std::string> &aSet);
 
+std::set<int> deadCodeElimination(std::vector<Quadruple> *const qcodes, const std::vector<CodeBlock *> &blocks);
+
 #endif /* BlocksDivide_hpp */

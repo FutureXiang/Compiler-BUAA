@@ -75,6 +75,7 @@ public:
 bool is_function_label(Quadruple q);
 bool is_var(Operand *rand);
 bool is_localvar(Operand *rand);
+bool is_globalvar(Operand *rand);
 bool is_control_label(Quadruple q);
 bool using_control_label(Quadruple q);
 

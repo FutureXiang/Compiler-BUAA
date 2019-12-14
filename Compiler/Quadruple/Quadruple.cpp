@@ -110,6 +110,13 @@ bool is_localvar(Operand *rand) {
     return s[0] != 'a' && s[0] != '$' && s.substr(0, 3) != "_42";
 }
 
+bool is_globalvar(Operand *rand) {
+    if (!rand->is_symbol)
+        return false;
+    std::string s = rand->toString();
+    return s.substr(0, 3) == "_42";
+}
+
 void QuadrupleList::inline_functions() {
     std::map<std::string, std::vector<Quadruple> > inlineable_functions;
     while ((inlineable_functions = get_inlineable_functions()).size() != 0) {

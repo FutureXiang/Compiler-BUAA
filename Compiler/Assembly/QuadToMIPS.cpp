@@ -112,6 +112,11 @@ void Interpreter::Function_Def() {
         code = qcodes.pop();
 //        std::cerr << code.toString() << std::endl;
 
+        if (deadcodes_no.count(qcodes.last_poped_index())) {
+//            std::cout << "Skipping dead code : " << code.toString() << std::endl;
+            continue;
+        }
+        
         if (code.op == PARAM || code.op == VAR)
             continue;
         replaceSymbolToRegs();  // ALWAYS AFTER qcode.pop()!!!
