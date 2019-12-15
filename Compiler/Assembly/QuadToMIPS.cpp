@@ -117,8 +117,12 @@ void Interpreter::Function_Def() {
             continue;
         }
         
-        if (code.op == PARAM || code.op == VAR)
+        if (code.op == PARAM || code.op == VAR) {
+            // Load Params / Array @ function begin
+            if (name2globalreg_assignment.count(code.target->toString()))
+                regForThis(code.target->toString(), true);
             continue;
+        }
         replaceSymbolToRegs();  // ALWAYS AFTER qcode.pop()!!!
 
         if (code.op >= ADD && code.op <= DIV)
@@ -233,6 +237,7 @@ void Interpreter::Function_Call() {
     addCode(format("jal", code.target->toString()));
     addCode("\n");
     load_regs();
+    restoreEnv();
 }
 
 std::map<std::string, int> usageCount(std::vector<Quadruple> *const qcodes) {

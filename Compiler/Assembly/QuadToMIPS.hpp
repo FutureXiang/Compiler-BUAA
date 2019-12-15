@@ -61,6 +61,8 @@ class Interpreter {
     Quadruple code;                                     // ONGOING qcode
     std::set<int> deadcodes_no;
     
+    std::map<UniqueSymbol*, int> envs;
+    
 public:
     Interpreter(std::vector<Quadruple> *qs) {
         blocks = Divider(qs);
@@ -237,9 +239,11 @@ public:
 //        addCode("\n# RELEASE REGS START ----------"+code.toString(), offset);
         // ONLY RELEASE $s0 [for local vars] @ jal (is_caller_saving_env == true)
         if (is_caller_saving_env) {
+            envs.clear();
             for (auto pair: localsymbol2globalreg) {
                 int reg = pair.second;
                 UniqueSymbol *symbol = pair.first;
+                envs[symbol] = reg;
                 if (!symbol->is_array && symbol->dirty)
                     addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr), offset);
                 symbol->inited = true;
@@ -271,6 +275,16 @@ public:
         symbol2reg.clear();
         reg_free = reg_avail;
         reg_used = std::vector<int>();
+    }
+    void restoreEnv() {
+        for (auto sym_reg: envs) {
+            localsymbol2globalreg[sym_reg.first] = sym_reg.second;
+            if (!sym_reg.first->is_array) {
+                addCode(LwSw('l', "$"+std::to_string(sym_reg.second), "$sp", sym_reg.first->addr));
+            } else
+                addCode(format("addiu", "$"+std::to_string(sym_reg.second), "$sp", std::to_string(sym_reg.first->addr)));
+        }
+        envs.clear();
     }
     bool isEndOfBlock(int index) {
         // LABEL, GOTO, Branch
