@@ -59,14 +59,12 @@ class Interpreter {
     static const std::vector<int> global_reg_avail;
     std::string scope_name;
     Quadruple code;                                     // ONGOING qcode
-    std::set<int> deadcodes_no;
     
     std::map<UniqueSymbol*, int> envs;
     
 public:
     Interpreter(std::vector<Quadruple> *qs) {
         blocks = Divider(qs);
-        deadcodes_no = deadCodeElimination(qs, blocks);
         for (auto block: blocks) {
             end2block[block->end] = block;
         }

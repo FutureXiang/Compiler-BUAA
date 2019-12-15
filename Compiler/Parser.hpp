@@ -19,6 +19,7 @@
 #include <set>
 #include "Error.hpp"
 #include "Quadruple/Quadruple.hpp"
+#include "Quadruple/BlocksDivide.hpp"
 
 extern std::map<TokenType, TokenType> compSwap;
 extern std::map<TokenType, Operator> token2op;
@@ -72,4 +73,7 @@ public:
         return qcodes.getQCodes();
     }
 };
+
+std::vector<Quadruple> DeadCodeElimination(std::vector<Quadruple> qcode);
+
 #endif /* Parser_hpp */

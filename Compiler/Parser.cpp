@@ -1068,10 +1068,30 @@ Parser::Parser(std::set<std::pair<int, std::string> > &mess, PeekQueue<Token> da
     for(auto qcode: *qcodes.getQCodes())
         std::cerr << qcode.toString() << std::endl;
     fclose(stderr);
+    
+    freopen("17231145_向未来_优化后中间代码.txt", "w", stderr);
     qcodes.inline_functions();
     qcodes.sortout_labels();
-    freopen("17231145_向未来_优化后中间代码.txt", "w", stderr);
+    qcodes.qcode = DeadCodeElimination(*qcodes.getQCodes());
+
     for(auto qcode: *qcodes.getQCodes())
         std::cerr << qcode.toString() << std::endl;
     fclose(stderr);
+}
+
+
+std::vector<Quadruple> DeadCodeElimination(std::vector<Quadruple> qcode) {
+    bool finished = false;
+    while (!finished) {
+        finished = true;
+        std::vector<CodeBlock *> blocks = Divider(&qcode);
+        std::set<int> deadcodes_no = deadCodeElimination(&qcode, blocks);
+        std::vector<Quadruple> new_qcode;
+        for (int i = 0; i < qcode.size(); ++i)
+            if (!deadcodes_no.count(i))
+                new_qcode.push_back(qcode[i]);
+        qcode = new_qcode;
+        finished = deadcodes_no.empty();
+    }
+    return qcode;
 }

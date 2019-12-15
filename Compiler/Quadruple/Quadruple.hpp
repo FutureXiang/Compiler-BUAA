@@ -38,13 +38,13 @@ public:
 
 class QuadrupleList {
 private:
-    std::vector<Quadruple> qcode;
     int stringCounter;
     int labelCounter;
     int tempCounter;
     std::stack<Operand *> allocedButFree;
     std::map<std::shared_ptr<Symbol>, OperandSymbol *> operandSymbolPool;
 public:
+    std::vector<Quadruple> qcode;
     static const std::string temp_head;
     static const std::string label_head;
     static const std::string string_head;

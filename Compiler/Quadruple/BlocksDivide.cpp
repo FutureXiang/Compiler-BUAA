@@ -214,8 +214,10 @@ std::set<int> deadCodeElimination(std::vector<Quadruple> *const qcodes, const st
             Operator op = (*qcodes)[i].op;
             Operand *target = (*qcodes)[i].target;
             if (target != nullptr && is_var(target) && modify_target_operators.count(op))
-                if (!percode_out[i].count(target->toString()) && op != READ_INT && op != READ_CHAR)
+                if (!percode_out[i].count(target->toString()) && op != READ_INT && op != READ_CHAR) {
                     deads.insert(i);
+                    std::cerr << "Dead Code Elimination :: " << (*qcodes)[i].toString() << std::endl;
+                }
         }
     }
     return deads;

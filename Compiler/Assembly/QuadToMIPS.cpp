@@ -111,11 +111,6 @@ void Interpreter::Function_Def() {
     while (!qcodes.empty() && !(qcodes.peek().op == LABEL && qcodes.peek().target->toString()[0] == '_')) {
         code = qcodes.pop();
 //        std::cerr << code.toString() << std::endl;
-
-        if (deadcodes_no.count(qcodes.last_poped_index())) {
-//            std::cout << "Skipping dead code : " << code.toString() << std::endl;
-            continue;
-        }
         
         if (code.op == PARAM || code.op == VAR) {
             // Load Params / Array @ function begin
