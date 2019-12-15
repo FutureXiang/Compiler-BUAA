@@ -161,6 +161,8 @@ void QuadrupleList::inline_functions_single(std::map<std::string, std::vector<Qu
             
             std::set<std::string> params_only_refed;
             std::map<std::string, Operand*> params_source_args;
+            bool already_not_linear = false;
+            std::map<std::string, int> params_1st_def_linear;
             
             auto args_copy_to_params_start = new_qcode.size();
             for (int i = 0; i < valueArgs.size(); ++i) {
@@ -174,6 +176,9 @@ void QuadrupleList::inline_functions_single(std::map<std::string, std::vector<Qu
             std::map<std::string, Operand*> label_mapping;
             
             for (Quadruple func_code: func_codes) {
+                if (func_code.op == CALL  || func_code.op == RET ||
+                    func_code.op == LABEL || func_code.op == GOTO || (func_code.op >= BEQ && func_code.op <= BNEZ))
+                    already_not_linear = true;
                 if (func_code.op == PARAM || func_code.op == VAR) {
                     Quadruple replaced = func_code;
                     replaced.op = VAR;
@@ -186,13 +191,6 @@ void QuadrupleList::inline_functions_single(std::map<std::string, std::vector<Qu
                     continue;
                 }
                 Quadruple replaced = func_code;
-                if (replaced.target != nullptr && is_localvar(replaced.target)) {
-                    replaced.target = new OperandSymbol(inline_vars_head + replaced.target->toString());
-                    if (func_code.target->isTemp())
-                        vars_for_each_function[scope_name].insert(Quadruple(VAR, replaced.target));
-                    if (params_only_refed.count(replaced.target->toString()) && modify_target_operators.count(replaced.op))
-                        params_only_refed.erase(replaced.target->toString());
-                }
                 if (replaced.first != nullptr && is_localvar(replaced.first)) {
                     replaced.first = new OperandSymbol(inline_vars_head + replaced.first->toString());
                     if (func_code.first->isTemp())
@@ -202,6 +200,18 @@ void QuadrupleList::inline_functions_single(std::map<std::string, std::vector<Qu
                     replaced.second = new OperandSymbol(inline_vars_head + replaced.second->toString());
                     if (func_code.second->isTemp())
                         vars_for_each_function[scope_name].insert(Quadruple(VAR, replaced.second));
+                }
+                if (replaced.target != nullptr && is_localvar(replaced.target)) {
+                    replaced.target = new OperandSymbol(inline_vars_head + replaced.target->toString());
+                    if (func_code.target->isTemp())
+                        vars_for_each_function[scope_name].insert(Quadruple(VAR, replaced.target));
+                    // All occurance to reference? True -> Replace all, Delete MOVE
+                    if (params_only_refed.count(replaced.target->toString()) && modify_target_operators.count(replaced.op))
+                        params_only_refed.erase(replaced.target->toString());
+                    // Re-Definition in linear code? True -> Replace till Re-Def, Delte MOVE
+                    if (modify_target_operators.count(replaced.op) && !already_not_linear)
+                        if (!params_1st_def_linear.count(replaced.target->toString()))
+                            params_1st_def_linear[replaced.target->toString()] = new_qcode.size();  // 保存线性部分的第一次定义的位置
                 }
                 if (replaced.op == LABEL || replaced.op == GOTO || (replaced.op >= BEQ && replaced.op <= BNEZ)) {
                     std::string label = replaced.target->toString();
@@ -215,11 +225,26 @@ void QuadrupleList::inline_functions_single(std::map<std::string, std::vector<Qu
             }
             new_qcode.push_back(Quadruple(LABEL, end_label));
             
+            for (auto i = args_copy_to_params_start + valueArgs.size(); i != new_qcode.size(); ++i) {
+                if (new_qcode[i].first != nullptr && params_1st_def_linear.count(new_qcode[i].first->toString())
+                    && i <= params_1st_def_linear[new_qcode[i].first->toString()]) {
+                    new_qcode[i].first = params_source_args[new_qcode[i].first->toString()];
+                }
+                if (new_qcode[i].second != nullptr && params_1st_def_linear.count(new_qcode[i].second->toString())
+                    && i <= params_1st_def_linear[new_qcode[i].second->toString()]) {
+                    new_qcode[i].second = params_source_args[new_qcode[i].second->toString()];
+                }
+                if (new_qcode[i].target != nullptr && params_1st_def_linear.count(new_qcode[i].target->toString())
+                    && i <  params_1st_def_linear[new_qcode[i].target->toString()]) {
+                    new_qcode[i].target = params_source_args[new_qcode[i].target->toString()];
+                }
+            }
+            
             auto it = new_qcode.begin() + args_copy_to_params_start;
             int checked = 0;
             while (checked < valueArgs.size()) {
                 checked++;
-                if (params_only_refed.count(it->target->toString())) {
+                if (params_only_refed.count(it->target->toString()) || params_1st_def_linear.count(it->target->toString())) {
 //                    std::cerr << "removed: " << it->toString() << std::endl;
                     it = new_qcode.erase(it);
                 } else
