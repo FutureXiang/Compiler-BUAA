@@ -123,7 +123,7 @@ public:
                 // INITIALIZE @ first use / RESTORE @ jal_next
                 localsymbol2globalreg[symbol] = name2globalreg_assignment[name];
                 if (!symbol->is_array) {
-                    if (symbol->inited && refer)
+                    if (refer)
                         addCode(LwSw('l', "$"+std::to_string(localsymbol2globalreg[symbol]), "$sp", symbol->addr));
                 } else
                     addCode(format("addiu", "$"+std::to_string(localsymbol2globalreg[symbol]), "$sp", std::to_string(symbol->addr)));
@@ -242,10 +242,8 @@ public:
                 int reg = pair.second;
                 UniqueSymbol *symbol = pair.first;
                 envs[symbol] = reg;
-                if (!symbol->is_array && symbol->dirty)
+                if (!symbol->is_array)
                     addCode(LwSw('s', "$"+std::to_string(reg), "$sp", symbol->addr), offset);
-                symbol->inited = true;
-                symbol->dirty = false;
             }
             localsymbol2globalreg.clear();
         }

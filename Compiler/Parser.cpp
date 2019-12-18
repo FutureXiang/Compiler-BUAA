@@ -274,10 +274,10 @@ void Parser::returnStatement() {
         type = expr(temp);
         
         /* QUAD-CODE: MOVE RETURN-VALUE TO v0, THEN RETURN */
-        if ((qcodes.getQCodes()->end()-1)->target == temp
-            && modify_target_operators.count((qcodes.getQCodes()->end()-1)->op)
+        if (qcodes.getQCodes()->back().target == temp
+            && modify_target_operators.count(qcodes.getQCodes()->back().op)
             && temp->isTemp())
-            (qcodes.getQCodes()->end()-1)->target = (Operand *)&qcodes.v0Symbol;
+            qcodes.getQCodes()->back().target = (Operand *)&qcodes.v0Symbol;
         else
             qcodes.addCode(Quadruple(MV, (Operand *)&qcodes.v0Symbol, temp));
         mustBeThisToken(rBracket);
@@ -392,10 +392,10 @@ void Parser::assignStatement() {
         expr(result);
         
         /* QUAD-CODE: SAVE VALUE TO SYMBOL */
-        if ((qcodes.getQCodes()->end()-1)->target == result
-            && modify_target_operators.count((qcodes.getQCodes()->end()-1)->op)
+        if (qcodes.getQCodes()->back().target == result
+            && modify_target_operators.count(qcodes.getQCodes()->back().op)
             && result->isTemp())
-            (qcodes.getQCodes()->end()-1)->target = sym_operand;
+            qcodes.getQCodes()->back().target = sym_operand;
         else
             qcodes.addCode(Quadruple(MV, sym_operand, result));
     }
@@ -433,10 +433,10 @@ void Parser::loopStatement() {
         Operand *body_label = new OperandLabel(qcodes.allocLabel());
         Operand *end_label = new OperandLabel(qcodes.allocLabel());
         
-        auto condition_start = qcodes.getQCodes()->end();
+        auto condition_start = qcodes.getQCodes()->size();
         Operand *first = nullptr, *second = nullptr;
         Operator comp = condition(first, second);
-        auto condition_end = qcodes.getQCodes()->end();
+        auto condition_end = qcodes.getQCodes()->size();
         
         // result == false --> jump to end_label
         if (second ==  nullptr)
@@ -449,7 +449,7 @@ void Parser::loopStatement() {
         statement();
         
         for (auto it = condition_start; it != condition_end; ++it)
-            qcodes.addCode(*it);
+            qcodes.addCode((*qcodes.getQCodes())[it]);
         if (second ==  nullptr)
             qcodes.addCode(Quadruple(BNEZ, body_label, first));
         else
@@ -486,10 +486,10 @@ void Parser::loopStatement() {
         Operand *sym_operand = qcodes.getOperandSymbol(table.getSymbolByName(identifier.getText()));
         Operand *temp = nullptr;
         expr(temp);
-        if ((qcodes.getQCodes()->end()-1)->target == temp
-            && modify_target_operators.count((qcodes.getQCodes()->end()-1)->op)
+        if (qcodes.getQCodes()->back().target == temp
+            && modify_target_operators.count(qcodes.getQCodes()->back().op)
             && temp->isTemp())
-            (qcodes.getQCodes()->end()-1)->target = sym_operand;
+            qcodes.getQCodes()->back().target = sym_operand;
         else
             qcodes.addCode(Quadruple(MV, sym_operand, temp));
         mustBeThisToken(semi);
@@ -497,10 +497,10 @@ void Parser::loopStatement() {
         Operand *body_label = new OperandLabel(qcodes.allocLabel());
         Operand *end_label = new OperandLabel(qcodes.allocLabel());
         
-        auto condition_start = qcodes.getQCodes()->end();
+        auto condition_start = qcodes.getQCodes()->size();
         Operand *first = nullptr, *second = nullptr;
         Operator comp = condition(first, second);
-        auto condition_end = qcodes.getQCodes()->end();
+        auto condition_end = qcodes.getQCodes()->size();
         
         // result == false --> jump to end_label
         if (second ==  nullptr)
@@ -543,7 +543,7 @@ void Parser::loopStatement() {
         qcodes.addCode(stepping);
         
         for (auto it = condition_start; it != condition_end; ++it)
-            qcodes.addCode(*it);
+            qcodes.addCode((*qcodes.getQCodes())[it]);
         if (second ==  nullptr)
             qcodes.addCode(Quadruple(BNEZ, body_label, first));
         else
